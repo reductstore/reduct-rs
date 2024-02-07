@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Rust Linter
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Check code
         run: cargo fmt --all -- --check
 
@@ -36,11 +36,11 @@ jobs:
     needs:
       - rust_fmt
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run Database
         run: docker run --network=host -v ${PWD}/misc:/misc --env RS_API_TOKEN=TOKEN -d ${{env.REGISTRY_IMAGE}}
       - name: Run Client SDK tests
-        run: RS_API_TOKEN=TOKEN cargo test --test-threads=1
+        run: RS_API_TOKEN=TOKEN cargo test -- --test-threads=1
 
   sdk_examples:
     name: Client SDK Examples
@@ -51,9 +51,9 @@ jobs:
       matrix:
         example: [ "hallo_world", "query" ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run Database
-        run: docker run --network=host -v ${PWD}/misc:/misc --env RS_API_TOKEN=TOKEN -d ${{env.REGISTRY_IMAGE}}
+        run: docker run --network=host -v ${PWD}/misc:/misc -d ${{env.REGISTRY_IMAGE}}
       - name: Run Client SDK tests
         run: cargo run --example ${{matrix.example}}
 
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Check tag
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Check tag
         if: startsWith(github.ref, 'refs/tags/')
         run: |
