@@ -1,14 +1,15 @@
 # ReductStore Client SDK for Rust
 
-![Crates.io](https://img.shields.io/crates/v/reductstore)
-![Crates.io](https://img.shields.io/crates/l/reduct-rs)
+[![Crates.io](https://img.shields.io/crates/v/reduct-rs)](https://crates.io/crates/reduct-rs)
+[![Docs.rs](https://docs.rs/reduct-rs/badge.svg)](https://docs.rs/reduct-rs/latest/reduct_rs/)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/reductstore/reduct-rs/ci.yml?branch=main)](https://github.com/reductstore/reduct-rs/actions)
 
 This package provides an HTTP client for interacting with the [ReductStore](https://www.reduct.store), time-series
 database for unstructured data.
 
 ## Features
 
-* Supports the [ReductStore HTTP API v1.7](https://reduct.store/docs/http-api)
+* Supports the [ReductStore HTTP API v1.8](https://reduct.store/docs/http-api)
 * Built on top of [reqwest](https://github.com/seanmonstar/reqwest)
 * Asynchronous API
 
