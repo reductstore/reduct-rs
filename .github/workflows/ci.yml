@@ -33,8 +33,6 @@ jobs:
   sdk_tests:
     name: Client SDK Tests
     runs-on: ubuntu-latest
-    needs:
-      - build
     steps:
       - uses: actions/checkout@v3
       - name: Run Database
@@ -45,8 +43,6 @@ jobs:
   sdk_examples:
     name: Client SDK Examples
     runs-on: ubuntu-latest
-    needs:
-      - build
     strategy:
       matrix:
         example: [ "hallo_world", "query" ]
