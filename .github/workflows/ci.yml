@@ -37,10 +37,14 @@ jobs:
       - rust_fmt
     steps:
       - uses: actions/checkout@v4
+      - name: Generate license
+        run: echo '${{secrets.LICENSE_KEY}}' > lic.key
       - name: Run Database
-        run: docker run --network=host -v ${PWD}/misc:/misc --env RS_API_TOKEN=TOKEN -d ${{env.REGISTRY_IMAGE}}
+        run: docker run --network=host -v ${PWD}/misc:/misc
+          --env RS_API_TOKEN=TOKEN
+          --env RS_LICENSE_PATH=/misc/lic.key -d ${{env.REGISTRY_IMAGE}}
       - name: Run Client SDK tests
-        run: RS_API_TOKEN=TOKEN cargo test -- --test-threads=1
+        run: RS_API_TOKEN=TOKEN  RS_LICENSE_PATH=lic.key cargo test -- --test-threads=1
 
   sdk_examples:
     name: Client SDK Examples

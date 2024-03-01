@@ -388,9 +388,20 @@ pub(crate) mod tests {
         #[rstest]
         #[tokio::test]
         async fn test_server_info(#[future] client: ReductClient) {
+            // we don't need to check every field because we share the same struct with the server
             let info = client.await.server_info().await.unwrap();
             assert!(info.version.starts_with("1."));
             assert!(info.bucket_count >= 2);
+
+            assert!(info.license.unwrap().licensee == "ReductStore");
+        }
+
+        #[test_with::env("RS_LICENSE_PATH")]
+        #[rstest]
+        #[tokio::test]
+        async fn test_server_license(#[future] client: ReductClient) {
+            let info = client.await.server_info().await.unwrap();
+            assert_eq!(info.license.unwrap().licensee, "ReductStore");
         }
 
         #[rstest]

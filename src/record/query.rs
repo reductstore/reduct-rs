@@ -12,7 +12,7 @@ use bytes::Bytes;
 use bytes::BytesMut;
 use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
-use reduct_base::batch::{parse_batched_header, sort_headers_by_name, RecordHeader};
+use reduct_base::batch::{parse_batched_header, RecordHeader};
 use reduct_base::error::ReductError;
 use reduct_base::msg::entry_api::QueryInfo;
 use reduct_base::Labels;
@@ -220,6 +220,16 @@ impl QueryBuilder {
             }
         })
     }
+}
+
+fn sort_headers_by_name(headers: &HeaderMap) -> Vec<(String, HeaderValue)> {
+    let mut sorted_headers: Vec<_> = headers
+        .clone()
+        .into_iter()
+        .map(|(key, value)| (key.unwrap().as_str().to_string(), value))
+        .collect();
+    sorted_headers.sort_by(|(name1, _), (name2, _)| name1.cmp(name2));
+    sorted_headers
 }
 
 async fn parse_batched_records(
