@@ -392,11 +392,9 @@ pub(crate) mod tests {
             let info = client.await.server_info().await.unwrap();
             assert!(info.version.starts_with("1."));
             assert!(info.bucket_count >= 2);
-
-            assert!(info.license.unwrap().licensee == "ReductStore");
         }
 
-        #[test_with::env("RS_LICENSE_PATH")]
+        #[test_with::file(/misc/lic.key)]
         #[rstest]
         #[tokio::test]
         async fn test_server_license(#[future] client: ReductClient) {

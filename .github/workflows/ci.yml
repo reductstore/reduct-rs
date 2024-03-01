@@ -44,7 +44,7 @@ jobs:
           --env RS_API_TOKEN=TOKEN
           --env RS_LICENSE_PATH=/misc/lic.key -d ${{env.REGISTRY_IMAGE}}
       - name: Run Client SDK tests
-        run: RS_API_TOKEN=TOKEN  RS_LICENSE_PATH=lic.key cargo test -- --test-threads=1
+        run: RS_API_TOKEN=TOKEN cargo test -- --test-threads=1
 
   sdk_examples:
     name: Client SDK Examples
