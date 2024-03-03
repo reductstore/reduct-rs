@@ -26,6 +26,7 @@ pub struct ReductClientBuilder {
     api_token: String,
     timeout: Duration,
     http1_only: bool,
+    verify_ssl: bool,
 }
 
 pub type Result<T> = std::result::Result<T, ReductError>;
@@ -39,6 +40,7 @@ impl ReductClientBuilder {
             api_token: String::new(),
             timeout: Duration::from_secs(30),
             http1_only: false,
+            verify_ssl: true,
         }
     }
 
@@ -60,12 +62,13 @@ impl ReductClientBuilder {
             ));
         }
         ReductError::new(ErrorCode::UrlParseError, "URL must be set");
-        let builder = reqwest::ClientBuilder::new().timeout(self.timeout);
+        let builder = reqwest::ClientBuilder::new().timeout(self.timeout).danger_accept_invalid_certs(!self.verify_ssl);
         let builder = if self.http1_only {
             builder.http1_only()
         } else {
             builder
         };
+
         Ok(ReductClient {
             http_client: Arc::new(HttpClient::new(
                 &self.url,
@@ -102,6 +105,12 @@ impl ReductClientBuilder {
     /// Set the HTTP version to HTTP/1.1 only.
     pub fn http1_only(mut self) -> Self {
         self.http1_only = true;
+        self
+    }
+
+    /// Set the SSL verification to false.
+    pub fn verify_ssl(mut self, verify_ssl: bool) -> Self {
+        self.verify_ssl = verify_ssl;
         self
     }
 }
@@ -394,7 +403,7 @@ pub(crate) mod tests {
             assert!(info.bucket_count >= 2);
         }
 
-        #[test_with::file(/misc/lic.key)]
+        #[test_with::file(/ misc / lic.key)]
         #[rstest]
         #[tokio::test]
         async fn test_server_license(#[future] client: ReductClient) {
