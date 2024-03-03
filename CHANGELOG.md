@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * RS-177: Add license field to ServerInfo, [PR-1](https://github.com/reductstore/reduct-rs/pull/1)
+* RS-185: Add `verify_ssl` option¸ [PR-2](https://github.com/reductstore/reduct-rs/pull/2)
 
 ## [1.8.0] - 2024-01-24
 
