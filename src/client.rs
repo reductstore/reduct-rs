@@ -225,7 +225,7 @@ impl ReductClient {
             .await
     }
 
-    /// Create a tokem
+    /// Create an access token
     ///
     /// # Arguments
     ///
@@ -247,7 +247,22 @@ impl ReductClient {
         Ok(token.value)
     }
 
-    /// Delete a token
+    /// Get an access token
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the token
+    ///
+    /// # Returns
+    ///
+    /// The token or an error
+    pub async fn get_token(&self, name: &str) -> Result<Token> {
+        self.http_client
+            .send_and_receive_json::<(), Token>(Method::GET, &format!("/tokens/{}", name), None)
+            .await
+    }
+
+    /// Delete an access token
     ///
     /// # Arguments
     ///
@@ -264,7 +279,7 @@ impl ReductClient {
         Ok(())
     }
 
-    /// List all tokens
+    /// List all access tokens
     ///
     /// # Returns
     ///
@@ -488,6 +503,19 @@ pub(crate) mod tests {
                 .unwrap();
 
             assert!(token_value.starts_with("test-token"));
+        }
+
+        #[rstest]
+        #[tokio::test]
+        async fn test_get_token(#[future] client: ReductClient) {
+            let token = client.await.get_token("init-token").await.unwrap();
+            assert_eq!(token.name, "init-token");
+            assert!(!token.is_provisioned);
+
+            let permissions = token.permissions.unwrap();
+            assert!(permissions.full_access);
+            assert!(permissions.read.is_empty());
+            assert!(permissions.write.is_empty());
         }
 
         #[rstest]
