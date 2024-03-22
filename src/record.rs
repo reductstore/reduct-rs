@@ -81,7 +81,9 @@ impl Record {
     /// Content of the record
     ///
     /// This consumes the record and returns bytes
-    pub fn bytes(self) -> Pin<Box<dyn futures::Future<Output = Result<Bytes, ReductError>>>> {
+    pub fn bytes(
+        self,
+    ) -> Pin<Box<dyn futures::Future<Output = Result<Bytes, ReductError>> + Send + Sync>> {
         Box::pin(async move {
             if let Some(mut data) = self.data {
                 let mut bytes = BytesMut::new();
