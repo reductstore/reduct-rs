@@ -222,13 +222,18 @@ impl QueryBuilder {
     }
 }
 
-fn sort_headers_by_name(headers: &HeaderMap) -> Vec<(String, HeaderValue)> {
+fn sort_headers_by_time(headers: &HeaderMap) -> Vec<(u64, HeaderValue)> {
     let mut sorted_headers: Vec<_> = headers
         .clone()
         .into_iter()
-        .map(|(key, value)| (key.unwrap().as_str().to_string(), value))
+        .filter(|(name, _)| name.is_some())
+        .map(|(name, value)| (name.unwrap().to_string(), value))
+        .filter(|(name, _)| name.starts_with("x-reduct-time-"))
+        .map(|(key, value)| (key[14..].parse::<u64>().ok(), value))
+        .filter(|(time, _)| time.is_some())
+        .map(|(time, value)| (time.unwrap(), value))
         .collect();
-    sorted_headers.sort_by(|(name1, _), (name2, _)| name1.cmp(name2));
+    sorted_headers.sort_by(|(ts1, _), (ts2, _)| ts1.cmp(ts2));
     sorted_headers
 }
 
@@ -238,19 +243,14 @@ async fn parse_batched_records(
     head_only: bool,
 ) -> Result<impl Stream<Item = Result<(Record, bool), ReductError>>, ReductError> {
     //sort headers by names
-    let sorted_headers = sort_headers_by_name(&headers);
+    let sorted_records = sort_headers_by_time(&headers);
 
-    let records_total = sorted_headers
-        .iter()
-        .filter(|(name, _)| name.starts_with("x-reduct-time-"))
-        .count();
+    let records_total = sorted_records.iter().count();
     let mut records_count = 0;
 
     Ok(stream! {
         let mut rest_data = BytesMut::new();
-        for (name, value) in sorted_headers {
-            if name.starts_with("x-reduct-time-") {
-                let timestamp = name[14..].parse::<u64>().unwrap();
+        for (timestamp, value) in sorted_records {
                 let RecordHeader{content_length, content_type, labels} = parse_batched_header(value.to_str().unwrap()).unwrap();
                 let last =  headers.get("x-reduct-last") == Some(&HeaderValue::from_str("true").unwrap());
 
@@ -298,7 +298,7 @@ async fn parse_batched_records(
                     content_length,
                     data
                 }, last));
-            }
+
         }
     })
 }

@@ -450,10 +450,9 @@ mod tests {
 
         #[rstest]
         #[case(true, 10)]
-        #[case(false, 10)]
+        #[case(false, 100)]
         #[case(false, 10_000)]
-        #[case(false, 30_000_000)]
-        #[case(false, 100_000_000)]
+        #[case(false, 20_000_000)]
         #[tokio::test]
         async fn test_query(
             #[future] bucket: Bucket,
@@ -462,8 +461,8 @@ mod tests {
         ) {
             let bucket: Bucket = bucket.await;
             let mut bodies: Vec<Vec<u8>> = Vec::new();
-            for i in 0..3usize {
-                let mut content = Vec::new();
+            for i in 0..20usize {
+                let mut content = Vec::with_capacity(size);
                 for _j in 0..size {
                     content.push(i as u8);
                 }
@@ -471,7 +470,7 @@ mod tests {
 
                 bucket
                     .write_record("entry-3")
-                    .timestamp_us((i as u64) * 1_000_000)
+                    .timestamp_us(i as u64)
                     .data(Bytes::from(bodies[i].clone()))
                     .send()
                     .await
@@ -486,40 +485,19 @@ mod tests {
                 .await
                 .unwrap();
             pin_mut!(query);
-            let record = query.next().await.unwrap().unwrap();
-            assert_eq!(record.timestamp_us(), 0);
-            assert_eq!(record.content_length(), size);
-            assert_eq!(record.content_type(), "application/octet-stream");
 
-            if !head_only {
-                assert_eq!(
-                    record.bytes().await.unwrap(),
-                    Bytes::from(bodies[0].clone())
-                );
-            }
+            for i in 0..20usize {
+                let record = query.next().await.unwrap().unwrap();
+                assert_eq!(record.timestamp_us(), i as u64);
+                assert_eq!(record.content_length(), size);
+                assert_eq!(record.content_type(), "application/octet-stream");
 
-            let record = query.next().await.unwrap().unwrap();
-            assert_eq!(record.timestamp_us(), 1_000_000);
-            assert_eq!(record.content_length(), size);
-            assert_eq!(record.content_type(), "application/octet-stream");
-
-            if !head_only {
-                assert_eq!(
-                    record.bytes().await.unwrap(),
-                    Bytes::from(bodies[1].clone())
-                );
-            }
-
-            let record = query.next().await.unwrap().unwrap();
-            assert_eq!(record.timestamp_us(), 2_000_000);
-            assert_eq!(record.content_length(), size);
-            assert_eq!(record.content_type(), "application/octet-stream");
-
-            if !head_only {
-                assert_eq!(
-                    record.bytes().await.unwrap(),
-                    Bytes::from(bodies[2].clone())
-                );
+                if !head_only {
+                    assert_eq!(
+                        record.bytes().await.unwrap(),
+                        Bytes::from(bodies[i].clone())
+                    );
+                }
             }
 
             assert!(query.next().await.is_none());
