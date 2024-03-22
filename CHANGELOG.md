@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Fixed
+## [1.9.3] - 2024-03-22
+
+### Fixed
 
 * Fix sorting batched data, [PR-5](https://github.com/reductstore/reduct-rs/pull/5)
 * Add Send and Sync traits to Record.bytes(), [PR-6](https://github.com/reductstore/reduct-rs/pull/6)
@@ -30,7 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Part of https://github.com/reductstore/reductstore
 
-[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.9.2...HEAD
+[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.9.3...HEAD
+
+[1.9.3]: https://github.com/reductstore/reduct-rs/compare/v1.9.2...v1.9.3
 
 [1.9.2]: https://github.com/reductstore/reduct-rs/compare/v1.9.0...v1.9.2
 
