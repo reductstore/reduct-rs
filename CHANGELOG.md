@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+
+* Fix sorting batched data, [PR-5](https://github.com/reductstore/reduct-rs/pull/5)
+
 ## [1.9.2] - 2024-03-08
 
 ### Fixed
