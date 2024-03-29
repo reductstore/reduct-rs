@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.4] - 2024-03-29
+
+### Changed
+
+* Use reduct-base 1.9.4
+
 ## [1.9.3] - 2024-03-22
 
 ### Fixed
