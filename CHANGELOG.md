@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.5] - 2024-03-30
+
+### Fixed
+
+* Re-export replication structures, [PR-7](https://github.com/reductstore/reduct-rs/pull/7)
+
 ## [1.9.4] - 2024-03-29
 
 ### Changed
