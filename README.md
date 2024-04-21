@@ -18,14 +18,14 @@ database for unstructured data.
 ```rust
 
 use bytes::Bytes;
-use reduct_rs::{ReductClient, HttpError};
+use reduct_rs::{ReductClient, ReductError};
 use std::str::from_utf8;
 use std::time::SystemTime;
 
 use tokio;
 
 #[tokio::main]
-async fn main() -> Result<(), HttpError> {
+async fn main() -> Result<(), ReductError> {
     let client = ReductClient::builder().url("http://127.0.0.1:8383").build();
 
     let timestamp = SystemTime::now();
