@@ -19,14 +19,14 @@ async fn main() -> Result<(), ReductError> {
     bucket
         .write_record("entry-1")
         .add_label("planet", "Earth")
-        .data(Bytes::from("Hello, Earth!"))
+        .data("Hello, Earth!")
         .send()
         .await?;
 
     bucket
         .write_record("entry-1")
         .add_label("planet", "Mars")
-        .data(Bytes::from("Hello, Mars!"))
+        .data("Hello, Mars!")
         .send()
         .await?;
 
