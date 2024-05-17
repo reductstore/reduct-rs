@@ -14,6 +14,10 @@ readme = "README.md"
 keywords = ["database", "time-series", "client", "sdk", "reductstore"]
 categories = ["database"]
 
+[features]
+default = []
+test-api-110 = []   # Test API 1.10
+
 
 [lib]
 crate-type = ["lib"]

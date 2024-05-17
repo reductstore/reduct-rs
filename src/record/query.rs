@@ -27,10 +27,13 @@ pub struct QueryBuilder {
     stop: Option<u64>,
     include: Option<Labels>,
     exclude: Option<Labels>,
+    each_s: Option<f64>,
+    each_n: Option<u64>,
+    limit: Option<u64>,
+
     ttl: Option<Duration>,
     continuous: bool,
     head_only: bool,
-    limit: Option<u64>,
 
     bucket: String,
     entry: String,
@@ -44,10 +47,13 @@ impl QueryBuilder {
             stop: None,
             include: None,
             exclude: None,
+            each_s: None,
+            each_n: None,
+            limit: None,
+
             ttl: None,
             continuous: false,
             head_only: false,
-            limit: None,
 
             bucket,
             entry,
@@ -117,6 +123,27 @@ impl QueryBuilder {
         self
     }
 
+    /// Set S, to return a record every S seconds.
+    /// default: return all records
+    pub fn each_s(mut self, each_s: f64) -> Self {
+        self.each_s = Some(each_s);
+        self
+    }
+
+    /// Set N, to return every N records.
+    /// default: return all records
+    pub fn each_n(mut self, each_n: u64) -> Self {
+        self.each_n = Some(each_n);
+        self
+    }
+
+    /// Set a limit for the query.
+    /// default: unlimited
+    pub fn limit(mut self, limit: u64) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
     /// Set TTL for the query.
     pub fn ttl(mut self, ttl: Duration) -> Self {
         self.ttl = Some(ttl);
@@ -136,27 +163,20 @@ impl QueryBuilder {
         self
     }
 
-    /// Set a limit for the query.
-    /// default: unlimited
-    pub fn limit(mut self, limit: u64) -> Self {
-        self.limit = Some(limit);
-        self
-    }
-
     /// Send the query request.
     pub async fn send(
         self,
     ) -> Result<impl Stream<Item = Result<Record, ReductError>>, ReductError> {
         let mut url = format!("/b/{}/{}/q?", self.bucket, self.entry);
+        // filter parameters
         if let Some(start) = self.start {
             url.push_str(&format!("start={}", start));
         }
+
         if let Some(stop) = self.stop {
             url.push_str(&format!("&stop={}", stop));
         }
-        if let Some(ttl) = self.ttl {
-            url.push_str(&format!("&ttl={}", ttl.as_secs()));
-        }
+
         if let Some(include) = self.include {
             for (key, value) in include {
                 url.push_str(&format!("&include-{}={}", key, value));
@@ -167,11 +187,26 @@ impl QueryBuilder {
                 url.push_str(&format!("&exclude-{}={}", key, value));
             }
         }
+
+        if let Some(each_s) = self.each_s {
+            url.push_str(&format!("&each_s={}", each_s));
+        }
+
+        if let Some(each_n) = self.each_n {
+            url.push_str(&format!("&each_n={}", each_n));
+        }
+
+        if let Some(limit) = self.limit {
+            url.push_str(&format!("&limit={}", limit));
+        }
+
+        // control parameters
         if self.continuous {
             url.push_str("&continuous=true");
         }
-        if let Some(limit) = self.limit {
-            url.push_str(&format!("&limit={}", limit));
+
+        if let Some(ttl) = self.ttl {
+            url.push_str(&format!("&ttl={}", ttl.as_secs()));
         }
 
         let response = self
