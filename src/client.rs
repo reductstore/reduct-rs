@@ -725,7 +725,22 @@ pub(crate) mod tests {
                 ("entry".into(), "2".into()),
                 ("bucket".into(), "1".into()),
             ]))
-            .data(Bytes::from("Hey entry-2#1!"))
+            .data(Bytes::from("Hey entry-2!"))
+            .send()
+            .await
+            .unwrap();
+
+        bucket
+            .write_record("entry-2")
+            .timestamp_us(3000)
+            .data("0")
+            .send()
+            .await
+            .unwrap();
+        bucket
+            .write_record("entry-2")
+            .timestamp_us(4000)
+            .data("0")
             .send()
             .await
             .unwrap();
