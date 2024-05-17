@@ -725,7 +725,7 @@ pub(crate) mod tests {
                 ("entry".into(), "2".into()),
                 ("bucket".into(), "1".into()),
             ]))
-            .data(Bytes::from("Hey entry-2!"))
+            .data(Bytes::from("Hey entry-2#1!"))
             .send()
             .await
             .unwrap();
