@@ -80,9 +80,13 @@ impl WriteRecordBuilder {
     }
 
     /// Set the data of the record to write.
-    pub fn data<B>(mut self, data: B) -> Self
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - The data to write.
+    pub fn data<D>(mut self, data: D) -> Self
     where
-        B: Into<Body>,
+        D: Into<Body>,
     {
         self.data = Some(data.into());
         self

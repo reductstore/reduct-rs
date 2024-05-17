@@ -3,7 +3,6 @@
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use bytes::Bytes;
 use futures_util::StreamExt;
 use reduct_rs::{ReductClient, ReductError};
 use std::str::from_utf8;
@@ -19,14 +18,14 @@ async fn main() -> Result<(), ReductError> {
     bucket
         .write_record("entry-1")
         .add_label("planet", "Earth")
-        .data(Bytes::from("Hello, Earth!"))
+        .data("Hello, Earth!")
         .send()
         .await?;
 
     bucket
         .write_record("entry-1")
         .add_label("planet", "Mars")
-        .data(Bytes::from("Hello, Mars!"))
+        .data("Hello, Mars!")
         .send()
         .await?;
 
