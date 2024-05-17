@@ -38,9 +38,9 @@ jobs:
         reductstore_version: [ "main", "latest" ]
         include:
           - reductstore_version: main
-            features: "test-api-110"
+            features: "default test-api-110"
           - reductstore_version: latest
-            features: ""
+            features: "default"
     needs:
       - rust_fmt
     steps:

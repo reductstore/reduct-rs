@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- RS-261: Add `each_n` and `each_s` query parameters, [PR-11](https://github.com/reductstore/reduct-rs/pull/11)
+
 ### Changed
 
 - Use IntoBody and `IntoBytes to write data, [PR-10](https://github.com/reductstore/reduct-rs/pull/10)
