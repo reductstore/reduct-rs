@@ -730,6 +730,21 @@ pub(crate) mod tests {
             .await
             .unwrap();
 
+        bucket
+            .write_record("entry-2")
+            .timestamp_us(3000)
+            .data("0")
+            .send()
+            .await
+            .unwrap();
+        bucket
+            .write_record("entry-2")
+            .timestamp_us(4000)
+            .data("0")
+            .send()
+            .await
+            .unwrap();
+
         let bucket = client
             .create_bucket("test-bucket-2")
             .settings(bucket_settings)

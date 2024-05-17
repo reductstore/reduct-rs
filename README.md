@@ -9,7 +9,7 @@ database for unstructured data.
 
 ## Features
 
-* Supports the [ReductStore HTTP API v1.8](https://reduct.store/docs/http-api)
+* Supports the [ReductStore HTTP API v1.10](https://reduct.store/docs/http-api)
 * Built on top of [reqwest](https://github.com/seanmonstar/reqwest)
 * Asynchronous API
 
@@ -34,7 +34,7 @@ async fn main() -> Result<(), ReductError> {
     bucket
         .write_record("entry-1")
         .timestamp(timestamp)
-        .data(Bytes::from("Hello, World!"))
+        .data("Hello, World!")
         .send()
         .await?;
 
