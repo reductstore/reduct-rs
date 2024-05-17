@@ -157,6 +157,8 @@ impl RecordBuilder {
     }
 
     /// Set the content length of the record to write
+    ///
+    /// Note: use this with stream data
     pub fn content_length(mut self, content_length: usize) -> Self {
         self.record.content_length = content_length;
         self
@@ -164,8 +166,12 @@ impl RecordBuilder {
 
     /// Set the content of the record
     ///
-    /// Overwrites content length
-    pub fn data(mut self, bytes: Bytes) -> Self {
+    /// Note: use this with data that fits in memory
+    pub fn data<D>(mut self, data: D) -> Self
+    where
+        D: Into<Bytes>,
+    {
+        let bytes = data.into();
         self.record.content_length = bytes.len();
         self.record.data = Some(Box::pin(futures::stream::once(async move { Ok(bytes) })));
         self
