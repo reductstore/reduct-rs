@@ -36,6 +36,11 @@ jobs:
     strategy:
       matrix:
         reductstore_version: [ "main", "latest" ]
+        include:
+          - reductstore_version: main
+            features: "test-api-110"
+          - reductstore_version: latest
+            features: ""
     needs:
       - rust_fmt
     steps:
@@ -47,7 +52,7 @@ jobs:
           --env RS_API_TOKEN=TOKEN
           --env RS_LICENSE_PATH=/misc/lic.key -d reduct/store:${{ matrix.reductstore_version }}
       - name: Run Client SDK tests
-        run: RS_API_TOKEN=TOKEN cargo test -- --test-threads=1
+        run: RS_API_TOKEN=TOKEN cargo test --features ${{ matrix.features }} -- --test-threads=1
 
   sdk_examples:
     name: Client SDK Examples
