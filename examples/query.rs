@@ -3,7 +3,6 @@
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use bytes::Bytes;
 use futures_util::StreamExt;
 use reduct_rs::{ReductClient, ReductError};
 use std::str::from_utf8;
