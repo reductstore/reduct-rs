@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- RS-261: Add `each_n` and `each_s` query parameters, [PR-11](https://github.com/reductstore/reduct-rs/pull/11)
+- RS-261: add `each_n` and `each_s` query parameters, [PR-11](https://github.com/reductstore/reduct-rs/pull/11)
+- RS-311: add `each_n` and `each_s` replication settings, [PR-13](https://github.com/reductstore/reduct-rs/pull/13)
 
 ### Changed
 
