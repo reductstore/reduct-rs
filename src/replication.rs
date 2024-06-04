@@ -31,6 +31,8 @@ impl ReplicationBuilder {
                 entries: vec![],
                 include: Default::default(),
                 exclude: Default::default(),
+                each_s: None,
+                each_n: None,
             },
             http_client,
         }
@@ -104,6 +106,30 @@ impl ReplicationBuilder {
     ///        If a few labels are specified, records must have none of them to be replicated.
     pub fn exclude(mut self, exclude: Labels) -> Self {
         self.settings.exclude = exclude;
+        self
+    }
+
+    /// Set the replication each_s setting.
+    ///
+    /// Replicate a record every S seconds if set.
+    ///
+    /// # Arguments
+    ///
+    /// * `each_s` - Replicate a record every S seconds.
+    pub fn each_s(mut self, each_s: f64) -> Self {
+        self.settings.each_s = Some(each_s);
+        self
+    }
+
+    /// Set the replication each_n setting.
+    ///
+    /// Replicate every Nth record if set.
+    ///
+    /// # Arguments
+    ///
+    /// * `each_n` - Replicate every Nth record.
+    pub fn each_n(mut self, each_n: u64) -> Self {
+        self.settings.each_n = Some(each_n);
         self
     }
 

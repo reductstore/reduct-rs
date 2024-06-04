@@ -595,14 +595,15 @@ pub(crate) mod tests {
                     pending_records: 0,
                 }
             );
-
-            assert_eq!(
-                replication.settings,
-                ReplicationSettings {
-                    dst_token: "***".to_string(),
-                    ..settings
-                }
-            );
+            if cfg!(feature = "test-api-110") {
+                assert_eq!(
+                    replication.settings,
+                    ReplicationSettings {
+                        dst_token: "***".to_string(),
+                        ..settings
+                    }
+                );
+            }
             assert_eq!(replication.diagnostics, Diagnostics::default());
         }
 
@@ -658,6 +659,8 @@ pub(crate) mod tests {
                 entries: vec![],
                 include: Labels::default(),
                 exclude: Labels::default(),
+                each_s: None,
+                each_n: None,
             }
         }
     }
