@@ -565,6 +565,8 @@ pub(crate) mod tests {
                 .entries(settings.entries.clone())
                 .include(settings.include.clone())
                 .exclude(settings.exclude.clone())
+                .each_s(settings.each_s.unwrap())
+                .each_n(settings.each_n.unwrap())
                 .send()
                 .await
                 .unwrap();
@@ -659,8 +661,8 @@ pub(crate) mod tests {
                 entries: vec![],
                 include: Labels::default(),
                 exclude: Labels::default(),
-                each_s: None,
-                each_n: None,
+                each_s: Some(1.0),
+                each_n: Some(1),
             }
         }
     }
