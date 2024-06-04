@@ -609,7 +609,7 @@ pub(crate) mod tests {
                 assert_eq!(
                     replication.settings,
                     ReplicationSettings {
-                        dst_token: settings.dst_token,
+                        dst_token: "***".to_string(),
                         each_n: None,
                         each_s: None,
                         ..settings
@@ -646,7 +646,7 @@ pub(crate) mod tests {
                 assert_eq!(
                     replication.settings,
                     ReplicationSettings {
-                        dst_token: settings.dst_token,
+                        dst_token: "***".to_string(),
                         each_n: None,
                         each_s: None,
                         ..settings
