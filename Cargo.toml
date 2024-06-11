@@ -23,7 +23,7 @@ test-api-110 = []   # Test API 1.10
 crate-type = ["lib"]
 
 [dependencies]
-reduct-base = { git = "https://github.com/reductstore/reductstore.git", branch = "main", package = "reduct-base" }
+reduct-base = "1.10.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
