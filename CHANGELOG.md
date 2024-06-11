@@ -7,10 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.1] - 2024-06-11
 
 ### Fix
 
-- Use ring provider, [PR-14](https://github.com/reductstore/reduct-rs/pull/14)
+- Use `ring` provider, [PR-14](https://github.com/reductstore/reduct-rs/pull/14)
 
 ## [1.10.0] - 2024-06-11
 
@@ -60,7 +61,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Part of https://github.com/reductstore/reductstore
 
-[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.10.1...HEAD
+
+[1.10.1]: https://github.com/reductstore/reduct-rs/compare/v1.10.1...v1.10.1
 
 [1.10.0]: https://github.com/reductstore/reduct-rs/compare/v1.9.2...v1.10.0
 
