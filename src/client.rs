@@ -597,25 +597,14 @@ pub(crate) mod tests {
                     pending_records: 0,
                 }
             );
-            if cfg!(feature = "test-api-110") {
-                assert_eq!(
-                    replication.settings,
-                    ReplicationSettings {
-                        dst_token: "***".to_string(),
-                        ..settings
-                    }
-                );
-            } else {
-                assert_eq!(
-                    replication.settings,
-                    ReplicationSettings {
-                        dst_token: "***".to_string(),
-                        each_n: None,
-                        each_s: None,
-                        ..settings
-                    }
-                );
-            }
+            assert_eq!(
+                replication.settings,
+                ReplicationSettings {
+                    dst_token: "***".to_string(),
+                    ..settings
+                }
+            );
+
             assert_eq!(replication.diagnostics, Diagnostics::default());
         }
 
@@ -634,25 +623,13 @@ pub(crate) mod tests {
                 .unwrap();
             let replication = client.get_replication("test-replication").await.unwrap();
 
-            if cfg!(feature = "test-api-110") {
-                assert_eq!(
-                    replication.settings,
-                    ReplicationSettings {
-                        dst_token: "***".to_string(),
-                        ..settings
-                    }
-                );
-            } else {
-                assert_eq!(
-                    replication.settings,
-                    ReplicationSettings {
-                        dst_token: "***".to_string(),
-                        each_n: None,
-                        each_s: None,
-                        ..settings
-                    }
-                );
-            }
+            assert_eq!(
+                replication.settings,
+                ReplicationSettings {
+                    dst_token: "***".to_string(),
+                    ..settings
+                }
+            );
         }
 
         #[rstest]

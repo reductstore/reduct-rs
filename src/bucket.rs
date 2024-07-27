@@ -15,6 +15,8 @@ use crate::client::Result;
 use crate::http_client::HttpClient;
 use crate::record::query::QueryBuilder;
 use crate::record::read_record::ReadRecordBuilder;
+use crate::record::update_record::UpdateRecordBuilder;
+use crate::record::write_batched_records::WriteBatchType;
 use crate::record::WriteRecordBuilder;
 use crate::WriteBatchBuilder;
 
@@ -177,6 +179,24 @@ impl Bucket {
     /// # Returns
     ///
     /// Returns a record builder.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use reduct_rs::{ReductClient, ReductError};
+    /// use std::time::SystemTime;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), ReductError> {
+    ///    let client = ReductClient::builder()
+    ///         .url("https://play.reduct.store")
+    ///         .api_token("reductstore")
+    ///         .build();
+    ///     let bucket = client.get_bucket("demo").await?;
+    ///     let record = bucket.write_record("entry-1").timestamp_us(1000).data("Some data").send().await?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn write_record(&self, entry: &str) -> WriteRecordBuilder {
         WriteRecordBuilder::new(
             self.name.clone(),
@@ -199,6 +219,42 @@ impl Bucket {
             self.name.clone(),
             entry.to_string(),
             Arc::clone(&self.http_client),
+            WriteBatchType::Write,
+        )
+    }
+
+    /// Update labels of a record in an entry.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - The entry to update.
+    ///
+    /// # Returns
+    ///
+    /// Returns a builder to update the record and send the request.
+    pub fn update_record(&self, entry: &str) -> UpdateRecordBuilder {
+        UpdateRecordBuilder::new(
+            self.name.clone(),
+            entry.to_string(),
+            Arc::clone(&self.http_client),
+        )
+    }
+
+    /// Create a batch to update records in the bucket.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - The entry to update.
+    ///
+    /// # Returns
+    ///
+    /// Returns a batch builder.
+    pub fn update_batch(&self, entry: &str) -> WriteBatchBuilder {
+        WriteBatchBuilder::new(
+            self.name.clone(),
+            entry.to_string(),
+            Arc::clone(&self.http_client),
+            WriteBatchType::Update,
         )
     }
 
@@ -505,7 +561,6 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        #[cfg_attr(not(feature = "test-api-110"), ignore)]
         async fn test_query_each_second(#[future] bucket: Bucket) {
             let bucket: Bucket = bucket.await;
             let query = bucket.query("entry-2").each_s(0.002).send().await.unwrap();
@@ -520,7 +575,6 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        #[cfg_attr(not(feature = "test-api-110"), ignore)]
         async fn test_query_each_minute(#[future] bucket: Bucket) {
             let bucket: Bucket = bucket.await;
             let query = bucket.query("entry-2").each_n(2).send().await.unwrap();
@@ -669,6 +723,76 @@ mod tests {
             error_map.get(&1000).unwrap().message,
             "A record with timestamp 1000 already exists"
         );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-111"), ignore)]
+    async fn test_update_record(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        bucket
+            .write_record("test")
+            .timestamp_us(1000)
+            .data(Bytes::from("Hey"))
+            .add_label("test", "1")
+            .add_label("x", "y")
+            .send()
+            .await
+            .unwrap();
+
+        bucket
+            .update_record("test")
+            .timestamp_us(1000)
+            .update_label("test", "2")
+            .remove_label("x")
+            .send()
+            .await
+            .unwrap();
+
+        let record = bucket
+            .read_record("test")
+            .timestamp_us(1000)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(record.labels().get("test"), Some(&"2".to_string()));
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-111"), ignore)]
+    async fn test_update_record_batched(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        bucket
+            .write_record("test")
+            .timestamp_us(1000)
+            .data(Bytes::from("Hey"))
+            .add_label("test", "1")
+            .add_label("x", "y")
+            .send()
+            .await
+            .unwrap();
+
+        let batch = bucket.update_batch("test");
+        let record1 = RecordBuilder::new()
+            .timestamp_us(1000)
+            .add_label("test".to_string(), "2".to_string())
+            .build();
+        let record2 = RecordBuilder::new()
+            .timestamp_us(10000)
+            .add_label("test".to_string(), "3".to_string())
+            .build();
+
+        let error_map = batch
+            .add_record(record1)
+            .add_record(record2)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(error_map.len(), 1);
+        assert_eq!(error_map.get(&10000).unwrap().status, ErrorCode::NotFound);
     }
 
     #[fixture]

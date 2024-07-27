@@ -14,10 +14,16 @@ use std::collections::{BTreeMap, VecDeque};
 use reduct_base::error::{ErrorCode, IntEnum, ReductError};
 use std::sync::Arc;
 
-/// Builder for writing multiple records in a single request.
+pub(crate) enum WriteBatchType {
+    Write,
+    Update,
+}
+
+/// Builder for writing or updating multiple records in a single request.
 pub struct WriteBatchBuilder {
     bucket: String,
     entry: String,
+    batch_type: WriteBatchType,
     records: VecDeque<Record>,
     client: Arc<HttpClient>,
 }
@@ -25,10 +31,16 @@ pub struct WriteBatchBuilder {
 type FailedRecordMap = BTreeMap<u64, ReductError>;
 
 impl WriteBatchBuilder {
-    pub(crate) fn new(bucket: String, entry: String, client: Arc<HttpClient>) -> Self {
+    pub(crate) fn new(
+        bucket: String,
+        entry: String,
+        client: Arc<HttpClient>,
+        batch_type: WriteBatchType,
+    ) -> Self {
         Self {
             bucket,
             entry,
+            batch_type,
             records: VecDeque::new(),
             client,
         }
@@ -56,27 +68,46 @@ impl WriteBatchBuilder {
     ///
     /// * `ReductError` - If the request was not successful.
     pub async fn send(mut self) -> Result<FailedRecordMap, ReductError> {
-        let request = self.client.request(
-            Method::POST,
-            &format!("/b/{}/{}/batch", self.bucket, self.entry),
-        );
+        let method = match self.batch_type {
+            WriteBatchType::Write => Method::POST,
+            WriteBatchType::Update => Method::PATCH,
+        };
+
+        let request = self
+            .client
+            .request(method, &format!("/b/{}/{}/batch", self.bucket, self.entry));
 
         let content_length: usize = self.records.iter().map(|r| r.content_length()).sum();
 
-        let mut request = request
-            .header(
-                CONTENT_TYPE,
-                HeaderValue::from_str("application/octet-stream").unwrap(),
-            )
-            .header(
+        let mut request = request.header(
+            CONTENT_TYPE,
+            HeaderValue::from_str("application/octet-stream").unwrap(),
+        );
+
+        request = match self.batch_type {
+            WriteBatchType::Update => {
+                request.header(CONTENT_LENGTH, HeaderValue::from_str("0").unwrap())
+            }
+
+            WriteBatchType::Write => request.header(
                 CONTENT_LENGTH,
                 HeaderValue::from_str(&content_length.to_string()).unwrap(),
-            );
+            ),
+        };
 
         for record in &self.records {
             let mut header_values = Vec::new();
-            header_values.push(record.content_length().to_string());
-            header_values.push(record.content_type().to_string());
+            match self.batch_type {
+                WriteBatchType::Update => {
+                    header_values.push("0".to_string());
+                    header_values.push("".to_string());
+                }
+                WriteBatchType::Write => {
+                    header_values.push(record.content_length().to_string());
+                    header_values.push(record.content_type().to_string());
+                }
+            }
+
             if !record.labels().is_empty() {
                 for (key, value) in record.labels() {
                     if value.contains(',') {
@@ -95,18 +126,24 @@ impl WriteBatchBuilder {
 
         let client = Arc::clone(&self.client);
 
-        let stream = stream! {
-             while let Some(record) = self.records.pop_front() {
-                 let mut stream = record.stream_bytes();
-                 while let Some(bytes) = stream.next().await {
-                     yield bytes;
-                 }
-             }
-        };
+        let response = match self.batch_type {
+            WriteBatchType::Update => client.send_request(request).await?,
 
-        let response = client
-            .send_request(request.body(Body::wrap_stream(stream)))
-            .await?;
+            WriteBatchType::Write => {
+                let stream = stream! {
+                 while let Some(record) = self.records.pop_front() {
+                     let mut stream = record.stream_bytes();
+                     while let Some(bytes) = stream.next().await {
+                         yield bytes;
+                     }
+                    }
+                };
+
+                client
+                    .send_request(request.body(Body::wrap_stream(stream)))
+                    .await?
+            }
+        };
 
         let mut failed_records = FailedRecordMap::new();
         response
