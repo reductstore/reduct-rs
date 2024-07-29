@@ -242,6 +242,9 @@ impl Bucket {
 
     /// Create a batch to update records in the bucket.
     ///
+    /// You should use RecordBuilder to create the records to update.
+    /// Add labels to the record to update. Labels with an empty value will be removed.
+    ///
     /// # Arguments
     ///
     /// * `entry` - The entry to update.
@@ -249,6 +252,30 @@ impl Bucket {
     /// # Returns
     ///
     /// Returns a batch builder.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use tokio;
+    /// use reduct_rs::{ReductClient, ReductError};
+    /// use reduct_rs::RecordBuilder;
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), ReductError> {
+    ///     let client = ReductClient::builder()
+    ///        .url("https://play.reduct.store")
+    ///        .api_token("reductstore")
+    ///        .build();
+    ///     let bucket = client.get_bucket("datasets").await?;
+    ///     let batch = bucket.update_batch("cats");
+    ///     let record1 = RecordBuilder::new()
+    ///         .timestamp_us(1000)
+    ///         .add_label("test".to_string(), "2".to_string())
+    ///         .add_label("x".to_string(), "".to_string()) // Remove label x
+    ///         .build();
+    ///
+    ///     batch.add_record(record1).send().await?;
+    ///     Ok(())
+    /// }
     pub fn update_batch(&self, entry: &str) -> WriteBatchBuilder {
         WriteBatchBuilder::new(
             self.name.clone(),
