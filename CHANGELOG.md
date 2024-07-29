@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- RS-31: `Bucket.update_record` and `Bucket.update_batch` to change labels of existing records, [PR-16](https://github.com/reductstore/reduct-rs/pull/16)
+
 ## [1.10.1] - 2024-06-11
 
-### Fix
+### Fixed
 
 - Use `ring` provider, [PR-14](https://github.com/reductstore/reduct-rs/pull/14)
 

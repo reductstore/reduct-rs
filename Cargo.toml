@@ -16,7 +16,7 @@ categories = ["database"]
 
 [features]
 default = []
-test-api-110 = []   # Test API 1.10
+test-api-111 = []   # Test API 1.11
 
 
 [lib]
