@@ -510,7 +510,7 @@ pub(crate) mod tests {
         async fn test_get_token(#[future] client: ReductClient) {
             let token = client.await.get_token("init-token").await.unwrap();
             assert_eq!(token.name, "init-token");
-            assert!(!token.is_provisioned);
+            assert!(token.is_provisioned);
 
             let permissions = token.permissions.unwrap();
             assert!(permissions.full_access);
