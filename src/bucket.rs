@@ -778,6 +778,7 @@ mod tests {
         let record1 = RecordBuilder::new()
             .timestamp_us(1000)
             .add_label("test".to_string(), "2".to_string())
+            .add_label("x".to_string(), "".to_string())
             .build();
         let record2 = RecordBuilder::new()
             .timestamp_us(10000)
@@ -793,6 +794,16 @@ mod tests {
 
         assert_eq!(error_map.len(), 1);
         assert_eq!(error_map.get(&10000).unwrap().status, ErrorCode::NotFound);
+
+        let record = bucket
+            .read_record("test")
+            .timestamp_us(1000)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(record.labels().get("test"), Some(&"2".to_string()));
+        assert_eq!(record.labels().get("x"), None);
     }
 
     #[fixture]
