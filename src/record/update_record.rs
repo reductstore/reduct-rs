@@ -5,12 +5,9 @@
 
 use crate::http_client::HttpClient;
 use crate::record::{from_system_time, Labels};
-use bytes::Bytes;
 
-use futures::TryStream;
-
-use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use reqwest::{Body, Method};
+use reqwest::header::CONTENT_LENGTH;
+use reqwest::Method;
 
 use reduct_base::error::{ErrorCode, ReductError};
 use std::sync::Arc;
