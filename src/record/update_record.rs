@@ -56,8 +56,11 @@ impl UpdateRecordBuilder {
     }
 
     /// Add a label to the record to update.
-    pub fn update_label(mut self, key: &str, value: &str) -> Self {
-        self.labels.insert(key.to_string(), value.to_string());
+    pub fn update_label<Str>(mut self, key: Str, value: Str) -> Self
+    where
+        Str: Into<String>,
+    {
+        self.labels.insert(key.into(), value.into());
         self
     }
 
@@ -75,7 +78,7 @@ impl UpdateRecordBuilder {
                 return Err(ReductError::new(
                     ErrorCode::UnprocessableEntity,
                     "timestamp is required",
-                ))
+                ));
             }
         };
 

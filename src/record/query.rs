@@ -92,13 +92,16 @@ impl QueryBuilder {
     }
 
     /// Add a label to include in the query.
-    pub fn add_include(mut self, key: &str, value: &str) -> Self {
+    pub fn add_include<Str>(mut self, key: Str, value: Str) -> Self
+    where
+        Str: Into<String>,
+    {
         if let Some(mut labels) = self.include {
-            labels.insert(key.to_string(), value.to_string());
+            labels.insert(key.into(), value.into());
             self.include = Some(labels);
         } else {
             let mut labels = Labels::new();
-            labels.insert(key.to_string(), value.to_string());
+            labels.insert(key.into(), value.into());
             self.include = Some(labels);
         }
         self
@@ -111,13 +114,16 @@ impl QueryBuilder {
     }
 
     /// Add a label to exclude from the query.
-    pub fn add_exclude(mut self, key: &str, value: &str) -> Self {
+    pub fn add_exclude<Str>(mut self, key: Str, value: Str) -> Self
+    where
+        Str: Into<String>,
+    {
         if let Some(mut labels) = self.exclude {
-            labels.insert(key.to_string(), value.to_string());
+            labels.insert(key.into(), value.into());
             self.exclude = Some(labels);
         } else {
             let mut labels = Labels::new();
-            labels.insert(key.to_string(), value.to_string());
+            labels.insert(key.into(), value.into());
             self.exclude = Some(labels);
         }
         self
