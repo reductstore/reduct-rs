@@ -668,8 +668,8 @@ mod tests {
         let record1 = RecordBuilder::new()
             .timestamp_us(1000)
             .data(Bytes::from("Hey,"))
-            .add_label("test".into(), "1".into())
-            .content_type("text/plain".into())
+            .add_label("test", "1")
+            .content_type("text/plain")
             .build();
 
         let stream = futures_util::stream::iter(vec![Ok(Bytes::from("World"))]);
@@ -677,8 +677,8 @@ mod tests {
         let record2 = RecordBuilder::new()
             .timestamp_us(2000)
             .stream(Box::pin(stream))
-            .add_label("test".into(), "2".into())
-            .content_type("text/plain".into())
+            .add_label("test", "2")
+            .content_type("text/plain")
             .content_length(5)
             .build();
 

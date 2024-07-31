@@ -61,14 +61,20 @@ impl WriteRecordBuilder {
     }
 
     /// Add a label to the record to write.
-    pub fn add_label(mut self, key: &str, value: &str) -> Self {
-        self.labels.insert(key.to_string(), value.to_string());
+    pub fn add_label<Str>(mut self, key: Str, value: Str) -> Self
+    where
+        Str: Into<String>,
+    {
+        self.labels.insert(key.into(), value.into());
         self
     }
 
     /// Set the content type of the record to write.
-    pub fn content_type(mut self, content_type: &str) -> Self {
-        self.content_type = content_type.to_string();
+    pub fn content_type<Str>(mut self, content_type: Str) -> Self
+    where
+        Str: Into<String>,
+    {
+        self.content_type = content_type.into();
         self
     }
 
