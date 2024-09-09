@@ -3,8 +3,9 @@
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::record::query::RemoveQueryBuilder;
 use crate::record::write_batched_records::WriteBatchType;
-use crate::{Bucket, WriteBatchBuilder};
+use crate::{Bucket, QueryBuilder, WriteBatchBuilder};
 use http::Method;
 use reduct_base::error::ReductError;
 
@@ -45,12 +46,77 @@ impl Bucket {
         Ok(())
     }
 
+    /// Remove records in a batch.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - The entry to remove.
+    ///
+    /// # Returns
+    ///
+    /// Returns a write batch builder.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    ///
+    /// use reduct_rs::{ReductClient, ReductError};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), ReductError> {
+    ///     let client = ReductClient::builder()
+    ///         .url("https://play.reduct.store")
+    ///         .api_token("reductstore")
+    ///         .build();
+    ///     let bucket = client.get_bucket("datasets").await?;
+    ///     let batch = bucket.remove_batch("cats");
+    ///     let errors = batch.add_timestamp_us(1000).add_timestamp_us(5000).send().await?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn remove_batch(&self, entry: &str) -> WriteBatchBuilder {
         WriteBatchBuilder::new(
             self.name.clone(),
             entry.to_string(),
             self.http_client.clone(),
             WriteBatchType::Remove,
+        )
+    }
+
+    /// Remove records in a query.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - The entry to remove.
+    ///
+    /// # Returns
+    ///
+    /// Returns a remove query builder.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    ///
+    /// use reduct_rs::{ReductClient, ReductError};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), ReductError> {
+    ///     let client = ReductClient::builder()
+    ///         .url("https://play.reduct.store")
+    ///         .api_token("reductstore")
+    ///         .build();
+    ///
+    ///     let bucket = client.get_bucket("datasets").await?;
+    ///     let query = bucket.remove_query("cats");
+    ///     let removed_records = query.start_us(1000).stop_us(5000).send().await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn remove_query(&self, entry: &str) -> RemoveQueryBuilder {
+        RemoveQueryBuilder::new(
+            self.name.clone(),
+            entry.to_string(),
+            self.http_client.clone(),
         )
     }
 }
@@ -123,5 +189,28 @@ mod tests {
 
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[&5000].status, ErrorCode::NotFound);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn remove_query(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+
+        let query = bucket.remove_query("entry-1");
+        let removed_records = query.start_us(1000).stop_us(5000).send().await.unwrap();
+
+        assert_eq!(
+            bucket
+                .read_record("entry-1")
+                .timestamp_us(1000)
+                .send()
+                .await
+                .err()
+                .unwrap()
+                .status,
+            ErrorCode::NotFound
+        );
+
+        assert_eq!(removed_records, 1);
     }
 }
