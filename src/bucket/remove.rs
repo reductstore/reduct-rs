@@ -147,6 +147,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn remove_record(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         bucket.remove_record("entry-1", 1000).await.unwrap();
@@ -165,6 +166,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn remove_batch(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
 
@@ -193,6 +195,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn remove_query(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
 

@@ -82,7 +82,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-111"), ignore)]
     async fn test_update_record(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         bucket
@@ -116,7 +115,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-111"), ignore)]
     async fn test_update_record_batched(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         bucket

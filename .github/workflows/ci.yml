@@ -38,7 +38,7 @@ jobs:
         reductstore_version: [ "main", "latest" ]
         include:
           - reductstore_version: main
-            features: "default test-api-111"
+            features: "default test-api-112"
           - reductstore_version: latest
             features: "default"
     needs:
