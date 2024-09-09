@@ -5,7 +5,7 @@
 
 use crate::record::query::RemoveQueryBuilder;
 use crate::record::write_batched_records::WriteBatchType;
-use crate::{Bucket, QueryBuilder, WriteBatchBuilder};
+use crate::{Bucket, WriteBatchBuilder};
 use http::Method;
 use reduct_base::error::ReductError;
 

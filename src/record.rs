@@ -27,8 +27,6 @@ pub use reduct_base::Labels;
 
 pub type RecordStream = Pin<Box<dyn Stream<Item = Result<Bytes, ReductError>> + Send + Sync>>;
 
-pub use write_record::WriteRecordBuilder;
-
 impl Debug for Record {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Record")

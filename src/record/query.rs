@@ -18,7 +18,6 @@ use reduct_base::msg::entry_api::{QueryInfo, RemoveQueryInfo};
 use reduct_base::Labels;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Method;
-use rustls::pki_types::ServerName;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
