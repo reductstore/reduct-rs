@@ -4,7 +4,7 @@
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::http_client::HttpClient;
-use crate::Record;
+use crate::{Record, RecordBuilder};
 use async_stream::stream;
 use futures_util::StreamExt;
 use reqwest::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
@@ -17,6 +17,7 @@ use std::sync::Arc;
 pub(crate) enum WriteBatchType {
     Write,
     Update,
+    Remove,
 }
 
 /// Builder for writing or updating multiple records in a single request.
@@ -47,14 +48,64 @@ impl WriteBatchBuilder {
     }
 
     /// Add a record to the batch.
+    ///
+    /// # Arguments
+    ///
+    /// * `record` - The record to add to the batch.
+    ///
+    /// # Returns
+    ///
+    /// Returns the builder for chaining.
     pub fn add_record(mut self, record: Record) -> Self {
         self.records.push_back(record);
         self
     }
 
     /// Add records to the batch.
+    ///
+    /// # Arguments
+    ///
+    /// * `records` - The records to add to the batch.
+    ///
+    /// # Returns
+    ///
+    /// Returns the builder for chaining.
     pub fn add_records(mut self, records: Vec<Record>) -> Self {
         self.records.extend(records);
+        self
+    }
+
+    /// Add an empty record to the batch with the given timestamp.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - The UNIX timestamp in microseconds of the record.
+    ///
+    /// # Returns
+    ///
+    /// Returns the builder for chaining.
+    pub fn add_timestamp_us(mut self, timestamp: u64) -> Self {
+        self.records
+            .push_back(RecordBuilder::new().timestamp_us(timestamp).build());
+        self
+    }
+
+    /// Add a vector of empty records to the batch with the given timestamps.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamps` - The UNIX timestamps in microseconds of the records.
+    ///
+    /// # Returns
+    ///
+    /// Returns the builder for chaining.
+    ///
+    pub fn add_timestamps_us(mut self, timestamps: Vec<u64>) -> Self {
+        self.records.extend(
+            timestamps
+                .into_iter()
+                .map(|t| RecordBuilder::new().timestamp_us(t).build()),
+        );
         self
     }
 
@@ -71,6 +122,7 @@ impl WriteBatchBuilder {
         let method = match self.batch_type {
             WriteBatchType::Write => Method::POST,
             WriteBatchType::Update => Method::PATCH,
+            WriteBatchType::Remove => Method::DELETE,
         };
 
         let request = self
@@ -93,6 +145,10 @@ impl WriteBatchBuilder {
                 CONTENT_LENGTH,
                 HeaderValue::from_str(&content_length.to_string()).unwrap(),
             ),
+
+            WriteBatchType::Remove => {
+                request.header(CONTENT_LENGTH, HeaderValue::from_str("0").unwrap())
+            }
         };
 
         for record in &self.records {
@@ -105,6 +161,10 @@ impl WriteBatchBuilder {
                 WriteBatchType::Write => {
                     header_values.push(record.content_length().to_string());
                     header_values.push(record.content_type().to_string());
+                }
+                WriteBatchType::Remove => {
+                    header_values.push("0".to_string());
+                    header_values.push("".to_string());
                 }
             }
 
@@ -143,6 +203,8 @@ impl WriteBatchBuilder {
                     .send_request(request.body(Body::wrap_stream(stream)))
                     .await?
             }
+
+            WriteBatchType::Remove => client.send_request(request).await?,
         };
 
         let mut failed_records = FailedRecordMap::new();
