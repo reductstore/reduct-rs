@@ -3,7 +3,8 @@
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::Bucket;
+use crate::record::write_batched_records::WriteBatchType;
+use crate::{Bucket, WriteBatchBuilder};
 use http::Method;
 use reduct_base::error::ReductError;
 
@@ -42,6 +43,15 @@ impl Bucket {
         );
         self.http_client.send_request(request).await?;
         Ok(())
+    }
+
+    pub fn remove_batch(&self, entry: &str) -> WriteBatchBuilder {
+        WriteBatchBuilder::new(
+            self.name.clone(),
+            entry.to_string(),
+            self.http_client.clone(),
+            WriteBatchType::Remove,
+        )
     }
 }
 
@@ -85,5 +95,33 @@ mod tests {
                 .status,
             ErrorCode::NotFound
         );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn remove_batch(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+
+        let batch = bucket.remove_batch("entry-1");
+        let errors = batch
+            .add_timestamp_us(1000)
+            .add_timestamp_us(5000)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(
+            bucket
+                .read_record("entry-1")
+                .send()
+                .await
+                .err()
+                .unwrap()
+                .status,
+            ErrorCode::NotFound
+        );
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[&5000].status, ErrorCode::NotFound);
     }
 }
