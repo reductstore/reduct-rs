@@ -5,6 +5,7 @@
 
 pub mod query;
 pub mod read_record;
+pub mod remove_record;
 pub mod update_record;
 pub mod write_batched_records;
 pub mod write_record;

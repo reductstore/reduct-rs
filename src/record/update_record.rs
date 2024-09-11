@@ -13,7 +13,7 @@ use reduct_base::error::{ErrorCode, ReductError};
 use std::sync::Arc;
 use std::time::SystemTime;
 
-/// Builder for a write record request.
+/// Builder for an update record request.
 pub struct UpdateRecordBuilder {
     bucket: String,
     entry: String,
