@@ -5,7 +5,7 @@
 
 use crate::record::query::RemoveQueryBuilder;
 use crate::record::write_batched_records::WriteBatchType;
-use crate::{Bucket, WriteBatchBuilder};
+use crate::{Bucket, RemoveRecordBuilder, WriteBatchBuilder};
 use http::Method;
 use reduct_base::error::ReductError;
 
@@ -32,18 +32,16 @@ impl Bucket {
     /// # Arguments
     ///
     /// * `entry` - The entry to remove.
-    /// * `timestamp` - The timestamp of the record to remove.
     ///
     /// # Returns
     ///
     /// Returns an error if the record could not be removed.
-    pub async fn remove_record(&self, entry: &str, timestamp: u64) -> Result<(), ReductError> {
-        let request = self.http_client.request(
-            Method::DELETE,
-            &format!("/b/{}/{}?ts={}", self.name, entry, timestamp),
-        );
-        self.http_client.send_request(request).await?;
-        Ok(())
+    pub fn remove_record(&self, entry: &str) -> RemoveRecordBuilder {
+        RemoveRecordBuilder::new(
+            self.name.clone(),
+            entry.to_string(),
+            self.http_client.clone(),
+        )
     }
 
     /// Remove records in a batch.
@@ -150,7 +148,12 @@ mod tests {
     #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn remove_record(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
-        bucket.remove_record("entry-1", 1000).await.unwrap();
+        bucket
+            .remove_record("entry-1")
+            .timestamp_us(1000)
+            .send()
+            .await
+            .unwrap();
         assert_eq!(
             bucket
                 .read_record("entry-1")
