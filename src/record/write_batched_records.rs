@@ -11,8 +11,10 @@ use reqwest::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
 use reqwest::{Body, Method};
 use std::collections::{BTreeMap, VecDeque};
 
+use crate::record::from_system_time;
 use reduct_base::error::{ErrorCode, IntEnum, ReductError};
 use std::sync::Arc;
+use std::time::SystemTime;
 
 pub(crate) enum WriteBatchType {
     Write,
@@ -90,6 +92,21 @@ impl WriteBatchBuilder {
         self
     }
 
+    /// Add an empty record to the batch with the given timestamp.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - The timestamp of the record.
+    ///
+    /// # Returns
+    ///
+    /// Returns the builder for chaining.
+    pub fn add_timestamp(mut self, timestamp: SystemTime) -> Self {
+        self.records
+            .push_back(RecordBuilder::new().timestamp(timestamp).build());
+        self
+    }
+
     /// Add a vector of empty records to the batch with the given timestamps.
     ///
     /// # Arguments
@@ -105,6 +122,24 @@ impl WriteBatchBuilder {
             timestamps
                 .into_iter()
                 .map(|t| RecordBuilder::new().timestamp_us(t).build()),
+        );
+        self
+    }
+
+    /// Add an empty record to the batch with the given timestamp.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - The timestamp of the record.
+    ///
+    /// # Returns
+    ///
+    /// Returns the builder for chaining.
+    pub fn add_timestamps(mut self, timestamps: Vec<SystemTime>) -> Self {
+        self.records.extend(
+            timestamps
+                .into_iter()
+                .map(|t| RecordBuilder::new().timestamp(t).build()),
         );
         self
     }
