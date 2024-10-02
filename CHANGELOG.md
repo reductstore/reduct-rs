@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - RS-418: Methods `Bucket.remove_record`, `Bucket.remove_batch` and `Bucker.remove_query` for deleting records, [PR-19](https://github.com/reductstore/reduct-rs/pull/19)
+- RS-388: Add `Bucket.rename_entry` method, [PR-24](https://github.com/reductstore/reduct-rs/pull/24)
 
 ## Changed
 
