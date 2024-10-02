@@ -11,7 +11,6 @@ use reqwest::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
 use reqwest::{Body, Method};
 use std::collections::{BTreeMap, VecDeque};
 
-use crate::record::from_system_time;
 use reduct_base::error::{ErrorCode, IntEnum, ReductError};
 use std::sync::Arc;
 use std::time::SystemTime;
