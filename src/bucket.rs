@@ -190,6 +190,29 @@ impl Bucket {
             )
             .await
     }
+
+    /// Rename the bucket.
+    ///
+    /// # Arguments
+    ///
+    /// * `new_name` - The new name of the bucket.
+    ///
+    /// # Returns
+    ///
+    /// Returns an error if the bucket could not be renamed.
+    pub async fn rename(&mut self, new_name: &str) -> Result<()> {
+        self.http_client
+            .send_json(
+                Method::PUT,
+                &format!("/b/{}/rename", self.name),
+                RenameEntry {
+                    new_name: new_name.to_string(),
+                },
+            )
+            .await?;
+        self.name = new_name.to_string();
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -259,6 +282,16 @@ mod tests {
         bucket.rename_entry("entry-1", "new-entry-1").await.unwrap();
         let entries = bucket.entries().await.unwrap();
         assert!(entries.iter().any(|entry| entry.name == "new-entry-1"));
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-112"), ignore)]
+    async fn test_bucket_rename(#[future] bucket: Bucket) {
+        let mut bucket = bucket.await;
+        bucket.rename("new-bucket").await.unwrap();
+        assert_eq!(bucket.name(), "new-bucket");
+        assert!(bucket.info().await.is_ok());
     }
 
     #[fixture]
