@@ -14,7 +14,7 @@ use reqwest::Method;
 
 use reduct_base::error::ErrorCode;
 use reduct_base::msg::bucket_api::{BucketInfo, BucketSettings, FullBucketInfo, QuotaType};
-use reduct_base::msg::entry_api::EntryInfo;
+use reduct_base::msg::entry_api::{EntryInfo, RenameEntry};
 
 use crate::client::Result;
 use crate::http_client::HttpClient;
@@ -168,6 +168,28 @@ impl Bucket {
     pub async fn entries(&self) -> Result<Vec<EntryInfo>> {
         Ok(self.full_info().await?.entries)
     }
+
+    /// Rename an entry in the bucket.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - The entry to rename.
+    /// * `new_name` - The new name of the entry.
+    ///
+    /// # Returns
+    ///
+    /// Returns an error if the entry could not be renamed.
+    pub async fn rename_entry(&self, entry: &str, new_name: &str) -> Result<()> {
+        self.http_client
+            .send_json(
+                Method::PUT,
+                &format!("/b/{}/{}/rename", self.name, entry),
+                RenameEntry {
+                    new_name: new_name.to_string(),
+                },
+            )
+            .await
+    }
 }
 
 #[cfg(test)]
@@ -227,6 +249,16 @@ mod tests {
             bucket.info().await.err().unwrap().status,
             ErrorCode::NotFound
         );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-112"), ignore)]
+    async fn test_bucket_rename_entry(#[future] bucket: Bucket) {
+        let bucket = bucket.await;
+        bucket.rename_entry("entry-1", "new-entry-1").await.unwrap();
+        let entries = bucket.entries().await.unwrap();
+        assert!(entries.iter().any(|entry| entry.name == "new-entry-1"));
     }
 
     #[fixture]
