@@ -364,4 +364,9 @@ impl WriteBatchBuilder {
     pub fn last_access(&self) -> SystemTime {
         self.lastAccess
     }
+
+    /// Clear the batch of records.
+    pub fn clear(&mut self) {
+        self.records.clear();
+    }
 }
