@@ -210,4 +210,31 @@ mod tests {
             "A record with timestamp 1000 already exists"
         );
     }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_batch_helper_methods(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let mut batch = bucket.write_batch("test");
+
+        batch.append_record(
+            RecordBuilder::new()
+                .timestamp_us(1000)
+                .data(Bytes::from("Hey,"))
+                .build(),
+        );
+        batch.append_record(
+            RecordBuilder::new()
+                .timestamp_us(2000)
+                .data(Bytes::from("World"))
+                .build(),
+        );
+
+        assert_eq!(batch.record_count(), 2);
+        assert_eq!(batch.size(), 9);
+
+        batch.clear();
+        assert_eq!(batch.record_count(), 0);
+        assert_eq!(batch.size(), 0);
+    }
 }
