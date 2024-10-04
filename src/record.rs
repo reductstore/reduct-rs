@@ -53,6 +53,10 @@ pub struct RecordBuilder {
 }
 
 impl Record {
+    pub fn builder() -> RecordBuilder {
+        RecordBuilder::new()
+    }
+
     /// Unix timestamp in microseconds
     pub fn timestamp_us(&self) -> u64 {
         self.timestamp
