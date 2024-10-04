@@ -65,6 +65,16 @@ impl WriteBatchBuilder {
         self
     }
 
+    /// Add record to the batch without chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `record` - The record to append to the batch.
+    pub fn append_record(&mut self, record: Record) {
+        self.records.push_back(record);
+        self.lastAccess = SystemTime::now();
+    }
+
     /// Add records to the batch.
     ///
     /// # Arguments
@@ -78,6 +88,17 @@ impl WriteBatchBuilder {
         self.records.extend(records);
         self.lastAccess = SystemTime::now();
         self
+    }
+
+    /// Add records to the batch without chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `records` - The records to append to the batch.
+    ///
+    pub fn append_records(&mut self, records: Vec<Record>) {
+        self.records.extend(records);
+        self.lastAccess = SystemTime::now();
     }
 
     /// Add an empty record to the batch with the given timestamp.
@@ -96,6 +117,18 @@ impl WriteBatchBuilder {
         self
     }
 
+    /// Add an empty record to the batch with the given timestamp without chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - The UNIX timestamp in microseconds of the record.
+    ///
+    pub fn append_timestamp_us(&mut self, timestamp: u64) {
+        self.records
+            .push_back(RecordBuilder::new().timestamp_us(timestamp).build());
+        self.lastAccess = SystemTime::now();
+    }
+
     /// Add an empty record to the batch with the given timestamp.
     ///
     /// # Arguments
@@ -110,6 +143,18 @@ impl WriteBatchBuilder {
             .push_back(RecordBuilder::new().timestamp(timestamp).build());
         self.lastAccess = SystemTime::now();
         self
+    }
+
+    /// Add an empty record to the batch with the given timestamp without chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - The timestamp of the record.
+    ///
+    pub fn append_timestamp(&mut self, timestamp: SystemTime) {
+        self.records
+            .push_back(RecordBuilder::new().timestamp(timestamp).build());
+        self.lastAccess = SystemTime::now();
     }
 
     /// Add a vector of empty records to the batch with the given timestamps.
@@ -132,6 +177,21 @@ impl WriteBatchBuilder {
         self
     }
 
+    /// Add a vector of empty records to the batch with the given timestamps without chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamps` - The UNIX timestamps in microseconds of the records.
+    ///
+    pub fn append_timestamps_us(&mut self, timestamps: Vec<u64>) {
+        self.records.extend(
+            timestamps
+                .into_iter()
+                .map(|t| RecordBuilder::new().timestamp_us(t).build()),
+        );
+        self.lastAccess = SystemTime::now();
+    }
+
     /// Add an empty record to the batch with the given timestamp.
     ///
     /// # Arguments
@@ -149,6 +209,21 @@ impl WriteBatchBuilder {
         );
         self.lastAccess = SystemTime::now();
         self
+    }
+
+    /// Add an empty record to the batch with the given timestamp without chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `timestamp` - The timestamp of the record.
+    ///
+    pub fn append_timestamps(&mut self, timestamps: Vec<SystemTime>) {
+        self.records.extend(
+            timestamps
+                .into_iter()
+                .map(|t| RecordBuilder::new().timestamp(t).build()),
+        );
+        self.lastAccess = SystemTime::now();
     }
 
     /// Build the request and send it to the server.
