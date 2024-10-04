@@ -28,7 +28,7 @@ pub struct WriteBatchBuilder {
     batch_type: WriteBatchType,
     records: VecDeque<Record>,
     client: Arc<HttpClient>,
-    lastAccess: SystemTime,
+    last_access: SystemTime,
 }
 
 type FailedRecordMap = BTreeMap<u64, ReductError>;
@@ -46,7 +46,7 @@ impl WriteBatchBuilder {
             batch_type,
             records: VecDeque::new(),
             client,
-            lastAccess: SystemTime::now(),
+            last_access: SystemTime::now(),
         }
     }
 
@@ -61,7 +61,7 @@ impl WriteBatchBuilder {
     /// Returns the builder for chaining.
     pub fn add_record(mut self, record: Record) -> Self {
         self.records.push_back(record);
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
         self
     }
 
@@ -72,7 +72,7 @@ impl WriteBatchBuilder {
     /// * `record` - The record to append to the batch.
     pub fn append_record(&mut self, record: Record) {
         self.records.push_back(record);
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
     }
 
     /// Add records to the batch.
@@ -86,7 +86,7 @@ impl WriteBatchBuilder {
     /// Returns the builder for chaining.
     pub fn add_records(mut self, records: Vec<Record>) -> Self {
         self.records.extend(records);
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
         self
     }
 
@@ -98,7 +98,7 @@ impl WriteBatchBuilder {
     ///
     pub fn append_records(&mut self, records: Vec<Record>) {
         self.records.extend(records);
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
     }
 
     /// Add an empty record to the batch with the given timestamp.
@@ -113,7 +113,7 @@ impl WriteBatchBuilder {
     pub fn add_timestamp_us(mut self, timestamp: u64) -> Self {
         self.records
             .push_back(RecordBuilder::new().timestamp_us(timestamp).build());
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
         self
     }
 
@@ -126,7 +126,7 @@ impl WriteBatchBuilder {
     pub fn append_timestamp_us(&mut self, timestamp: u64) {
         self.records
             .push_back(RecordBuilder::new().timestamp_us(timestamp).build());
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
     }
 
     /// Add an empty record to the batch with the given timestamp.
@@ -141,7 +141,7 @@ impl WriteBatchBuilder {
     pub fn add_timestamp(mut self, timestamp: SystemTime) -> Self {
         self.records
             .push_back(RecordBuilder::new().timestamp(timestamp).build());
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
         self
     }
 
@@ -154,7 +154,7 @@ impl WriteBatchBuilder {
     pub fn append_timestamp(&mut self, timestamp: SystemTime) {
         self.records
             .push_back(RecordBuilder::new().timestamp(timestamp).build());
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
     }
 
     /// Add a vector of empty records to the batch with the given timestamps.
@@ -173,7 +173,7 @@ impl WriteBatchBuilder {
                 .into_iter()
                 .map(|t| RecordBuilder::new().timestamp_us(t).build()),
         );
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
         self
     }
 
@@ -189,7 +189,7 @@ impl WriteBatchBuilder {
                 .into_iter()
                 .map(|t| RecordBuilder::new().timestamp_us(t).build()),
         );
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
     }
 
     /// Add an empty record to the batch with the given timestamp.
@@ -207,7 +207,7 @@ impl WriteBatchBuilder {
                 .into_iter()
                 .map(|t| RecordBuilder::new().timestamp(t).build()),
         );
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
         self
     }
 
@@ -223,7 +223,7 @@ impl WriteBatchBuilder {
                 .into_iter()
                 .map(|t| RecordBuilder::new().timestamp(t).build()),
         );
-        self.lastAccess = SystemTime::now();
+        self.last_access = SystemTime::now();
     }
 
     /// Build the request and send it to the server.
@@ -362,7 +362,7 @@ impl WriteBatchBuilder {
     ///
     /// Can be used for sending the batch after a certain period of time.
     pub fn last_access(&self) -> SystemTime {
-        self.lastAccess
+        self.last_access
     }
 
     /// Clear the batch of records.
