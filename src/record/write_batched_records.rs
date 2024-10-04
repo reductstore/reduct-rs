@@ -28,6 +28,7 @@ pub struct WriteBatchBuilder {
     batch_type: WriteBatchType,
     records: VecDeque<Record>,
     client: Arc<HttpClient>,
+    lastAccess: SystemTime,
 }
 
 type FailedRecordMap = BTreeMap<u64, ReductError>;
@@ -45,6 +46,7 @@ impl WriteBatchBuilder {
             batch_type,
             records: VecDeque::new(),
             client,
+            lastAccess: SystemTime::now(),
         }
     }
 
@@ -59,6 +61,7 @@ impl WriteBatchBuilder {
     /// Returns the builder for chaining.
     pub fn add_record(mut self, record: Record) -> Self {
         self.records.push_back(record);
+        self.lastAccess = SystemTime::now();
         self
     }
 
@@ -73,6 +76,7 @@ impl WriteBatchBuilder {
     /// Returns the builder for chaining.
     pub fn add_records(mut self, records: Vec<Record>) -> Self {
         self.records.extend(records);
+        self.lastAccess = SystemTime::now();
         self
     }
 
@@ -88,6 +92,7 @@ impl WriteBatchBuilder {
     pub fn add_timestamp_us(mut self, timestamp: u64) -> Self {
         self.records
             .push_back(RecordBuilder::new().timestamp_us(timestamp).build());
+        self.lastAccess = SystemTime::now();
         self
     }
 
@@ -103,6 +108,7 @@ impl WriteBatchBuilder {
     pub fn add_timestamp(mut self, timestamp: SystemTime) -> Self {
         self.records
             .push_back(RecordBuilder::new().timestamp(timestamp).build());
+        self.lastAccess = SystemTime::now();
         self
     }
 
@@ -122,6 +128,7 @@ impl WriteBatchBuilder {
                 .into_iter()
                 .map(|t| RecordBuilder::new().timestamp_us(t).build()),
         );
+        self.lastAccess = SystemTime::now();
         self
     }
 
@@ -140,6 +147,7 @@ impl WriteBatchBuilder {
                 .into_iter()
                 .map(|t| RecordBuilder::new().timestamp(t).build()),
         );
+        self.lastAccess = SystemTime::now();
         self
     }
 
@@ -263,5 +271,22 @@ impl WriteBatchBuilder {
             });
 
         Ok(failed_records)
+    }
+
+    /// Get the size of the batch in bytes.
+    pub fn size(&self) -> usize {
+        self.records.iter().map(|r| r.content_length()).sum()
+    }
+
+    /// Get the number of records in the batch.
+    pub fn record_count(&self) -> usize {
+        self.records.len()
+    }
+
+    /// Get the last time a record was added to the batch.
+    ///
+    /// Can be used for sending the batch after a certain period of time.
+    pub fn last_access(&self) -> SystemTime {
+        self.lastAccess
     }
 }
