@@ -122,7 +122,7 @@ impl RecordBuilder {
             record: Record {
                 timestamp: from_system_time(SystemTime::now()),
                 labels: Default::default(),
-                content_type: "application/octet-stream".to_string(),
+                content_type: "".to_string(),
                 content_length: 0,
                 data: None,
             },
