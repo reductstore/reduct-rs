@@ -11,7 +11,7 @@ mod replication;
 
 pub use bucket::Bucket;
 pub use client::ReductClient;
-pub use record::query::QueryBuilder;
+pub use record::query::{QueryBuilder, RemoveQueryBuilder};
 pub use record::read_record::ReadRecordBuilder;
 pub use record::remove_record::RemoveRecordBuilder;
 pub use record::write_batched_records::WriteBatchBuilder;
