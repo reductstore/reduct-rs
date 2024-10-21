@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Make `RemoveQueryBuilder` public, [PR-27](https://github.com/reductstore/reduct-rs/pull/27)
+
 ## [1.12.0] - 2024-10-04
 
 ### Added
