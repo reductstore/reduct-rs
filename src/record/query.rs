@@ -243,6 +243,9 @@ impl QueryBuilder {
     }
 }
 
+/**
+ * Builder for a remove query request.
+ */
 pub struct RemoveQueryBuilder {
     base_params: BaseQueryParameters,
 
