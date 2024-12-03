@@ -125,6 +125,7 @@ mod tests {
     use crate::bucket::tests::bucket;
     use reduct_base::error::ErrorCode;
     use rstest::rstest;
+    use serde_json::json;
 
     #[rstest]
     #[tokio::test]
@@ -145,7 +146,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn remove_record(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         bucket
@@ -169,7 +169,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn remove_batch(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
 
@@ -198,7 +197,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn remove_query(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
 
@@ -218,5 +216,50 @@ mod tests {
         );
 
         assert_eq!(removed_records, 1);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-113"), ignore)]
+    async fn test_remove_query_when(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let query = bucket
+            .remove_query("entry-1")
+            .when(json!({
+                "&entry": { "$eq": 1}
+            }))
+            .send()
+            .await;
+
+        let removed_records = query.unwrap();
+        assert_eq!(removed_records, 1);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-113"), ignore)]
+    async fn test_remove_query_when_strict(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let query = bucket
+            .remove_query("entry-1")
+            .when(json!({
+                "&NOT_EXIST": { "$eq": 1}
+            }))
+            .send()
+            .await;
+
+        let removed_records = query.unwrap();
+        assert_eq!(removed_records, 0);
+
+        let query = bucket
+            .remove_query("entry-1")
+            .when(json!({
+                "&NOT_EXIST": { "$eq": 1}
+            }))
+            .strict(true)
+            .send()
+            .await;
+
+        assert!(query.is_err());
     }
 }

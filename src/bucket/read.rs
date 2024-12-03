@@ -73,6 +73,7 @@ mod tests {
     use futures::pin_mut;
     use futures_util::StreamExt;
     use rstest::rstest;
+    use serde_json::json;
     use std::time::SystemTime;
 
     #[rstest]
@@ -224,17 +225,54 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_query_with_few_options(#[future] bucket: Bucket) {
+    #[cfg_attr(not(feature = "test-api-113"), ignore)]
+    async fn test_query_when(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let query = bucket
             .query("entry-1")
-            .start(SystemTime::now() - Duration::minutes(1).to_std().unwrap())
-            .stop(SystemTime::now() + Duration::minutes(1).to_std().unwrap())
-            .limit(1)
-            .add_include("bucket", "1")
-            .add_exclude("entry", "1")
+            .when(json!({
+                "&entry": { "$eq": 1}
+            }))
             .send()
             .await;
-        assert!(query.is_ok());
+
+        let query = query.unwrap();
+        pin_mut!(query);
+
+        let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.timestamp_us(), 1000);
+
+        assert!(query.next().await.is_none());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-113"), ignore)]
+    async fn test_query_when_strict(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let query = bucket
+            .query("entry-1")
+            .when(json!({
+                "&NOT_EXIST": { "$eq": 1}
+            }))
+            .send()
+            .await;
+
+        let query = query.unwrap();
+        pin_mut!(query);
+        assert!(query.next().await.is_none());
+
+        let query = bucket
+            .query("entry-1")
+            .when(json!({
+                "&NOT_EXIST": { "$eq": 1}
+            }))
+            .strict(true)
+            .send()
+            .await;
+
+        let query = query.unwrap();
+        pin_mut!(query);
+        assert!(query.next().await.unwrap().is_err());
     }
 }

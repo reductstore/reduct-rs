@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Added
+
+- RS-543: Support conditional query, [PR-28](https://github.com/reductstore/reduct-rs/pull/28)
+
 ## [1.12.1] - 2024-10-21
 
 ### Fixed

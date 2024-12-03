@@ -14,30 +14,17 @@ use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
 use reduct_base::batch::{parse_batched_header, sort_headers_by_time, RecordHeader};
 use reduct_base::error::ReductError;
-use reduct_base::msg::entry_api::{QueryInfo, RemoveQueryInfo};
+use reduct_base::msg::entry_api::{QueryEntry, QueryInfo, QueryType, RemoveQueryInfo};
 use reduct_base::Labels;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Method;
+use serde_json::Value;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-struct BaseQueryParameters {
-    start: Option<u64>,
-    stop: Option<u64>,
-    include: Option<Labels>,
-    exclude: Option<Labels>,
-    each_s: Option<f64>,
-    each_n: Option<u64>,
-}
-
 /// Builder for a query request.
 pub struct QueryBuilder {
-    base_params: BaseQueryParameters,
-
-    limit: Option<u64>,
-    ttl: Option<Duration>,
-    continuous: bool,
-    head_only: bool,
+    query: QueryEntry,
 
     bucket: String,
     entry: String,
@@ -47,21 +34,7 @@ pub struct QueryBuilder {
 impl QueryBuilder {
     pub(crate) fn new(bucket: String, entry: String, client: Arc<HttpClient>) -> Self {
         Self {
-            base_params: BaseQueryParameters {
-                start: None,
-                stop: None,
-                include: None,
-                exclude: None,
-                each_s: None,
-                each_n: None,
-            },
-
-            limit: None,
-
-            ttl: None,
-            continuous: false,
-            head_only: false,
-
+            query: QueryEntry::default(),
             bucket,
             entry,
             client,
@@ -70,68 +43,98 @@ impl QueryBuilder {
 
     /// Set the start time of the query.
     pub fn start(mut self, time: SystemTime) -> Self {
-        self.base_params.start = Some(from_system_time(time));
+        self.query.start = Some(from_system_time(time));
         self
     }
 
     /// Set the start time of the query as a unix timestamp in microseconds.
     pub fn start_us(mut self, time_us: u64) -> Self {
-        self.base_params.start = Some(time_us);
+        self.query.start = Some(time_us);
         self
     }
 
     /// Set the end time of the query.
     pub fn stop(mut self, time: SystemTime) -> Self {
-        self.base_params.stop = Some(from_system_time(time));
+        self.query.stop = Some(from_system_time(time));
         self
     }
 
     /// Set the end time of the query as a unix timestamp in microseconds.
     pub fn stop_us(mut self, time_us: u64) -> Self {
-        self.base_params.stop = Some(time_us);
+        self.query.stop = Some(time_us);
+        self
+    }
+
+    /// Set the condition for the query.
+    pub fn when(mut self, condition: Value) -> Self {
+        self.query.when = Some(condition);
+        self
+    }
+
+    /// Set the query to be strict.
+    /// If the query is strict, the query will return an error if any of the conditions are invalid.
+    /// default: false
+    pub fn strict(mut self, strict: bool) -> Self {
+        self.query.strict = Some(strict);
         self
     }
 
     /// Set the labels to include in the query.
+    #[deprecated(
+        since = "1.13.0",
+        note = "Use the `when` method to set the labels to include in the query."
+    )]
     pub fn include(mut self, labels: Labels) -> Self {
-        self.base_params.include = Some(labels);
+        self.query.include = Some(labels);
         self
     }
 
     /// Add a label to include in the query.
+    #[deprecated(
+        since = "1.13.0",
+        note = "Use the `when` method to set the labels to exclude from the query."
+    )]
     pub fn add_include<Str>(mut self, key: Str, value: Str) -> Self
     where
         Str: Into<String>,
     {
-        if let Some(mut labels) = self.base_params.include {
+        if let Some(mut labels) = self.query.include {
             labels.insert(key.into(), value.into());
-            self.base_params.include = Some(labels);
+            self.query.include = Some(labels);
         } else {
             let mut labels = Labels::new();
             labels.insert(key.into(), value.into());
-            self.base_params.include = Some(labels);
+            self.query.include = Some(labels);
         }
         self
     }
 
     /// Set the labels to exclude from the query.
+    #[deprecated(
+        since = "1.13.0",
+        note = "Use the `when` method to set the labels to exclude from the query."
+    )]
     pub fn exclude(mut self, labels: Labels) -> Self {
-        self.base_params.exclude = Some(labels);
+        self.query.exclude = Some(labels);
         self
     }
 
     /// Add a label to exclude from the query.
+    #[deprecated(
+        since = "1.13.0",
+        note = "Use the `when` method to add a label to exclude from the query."
+    )]
     pub fn add_exclude<Str>(mut self, key: Str, value: Str) -> Self
     where
         Str: Into<String>,
     {
-        if let Some(mut labels) = self.base_params.exclude {
+        if let Some(mut labels) = self.query.exclude {
             labels.insert(key.into(), value.into());
-            self.base_params.exclude = Some(labels);
+            self.query.exclude = Some(labels);
         } else {
             let mut labels = Labels::new();
             labels.insert(key.into(), value.into());
-            self.base_params.exclude = Some(labels);
+            self.query.exclude = Some(labels);
         }
         self
     }
@@ -139,80 +142,88 @@ impl QueryBuilder {
     /// Set S, to return a record every S seconds.
     /// default: return all records
     pub fn each_s(mut self, each_s: f64) -> Self {
-        self.base_params.each_s = Some(each_s);
+        self.query.each_s = Some(each_s);
         self
     }
 
     /// Set N, to return every N records.
     /// default: return all records
     pub fn each_n(mut self, each_n: u64) -> Self {
-        self.base_params.each_n = Some(each_n);
+        self.query.each_n = Some(each_n);
         self
     }
 
     /// Set a limit for the query.
     /// default: unlimited
     pub fn limit(mut self, limit: u64) -> Self {
-        self.limit = Some(limit);
+        self.query.limit = Some(limit);
         self
     }
 
     /// Set TTL for the query.
     pub fn ttl(mut self, ttl: Duration) -> Self {
-        self.ttl = Some(ttl);
+        self.query.ttl = Some(ttl.as_secs());
         self
     }
 
     /// Set the query to be continuous.
     pub fn continuous(mut self) -> Self {
-        self.continuous = true;
+        self.query.continuous = Some(true);
         self
     }
 
     /// Set the query to head only.
     /// default: false
     pub fn head_only(mut self, head_only: bool) -> Self {
-        self.head_only = head_only;
+        self.query.only_metadata = Some(head_only);
         self
     }
 
     /// Send the query request.
     pub async fn send(
-        self,
+        mut self,
     ) -> Result<impl Stream<Item = Result<Record, ReductError>>, ReductError> {
-        let mut url = build_base_url(self.base_params, &self.bucket, &self.entry);
+        let response = match self.query.when {
+            Some(_) => {
+                self.query.query_type = QueryType::Query;
+                self.client
+                    .send_and_receive_json::<QueryEntry, QueryInfo>(
+                        Method::POST,
+                        &format!("/b/{}/{}/q", self.bucket, self.entry),
+                        Some(self.query.clone()),
+                    )
+                    .await?
+            }
+            None => {
+                let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
 
-        if let Some(limit) = self.limit {
-            url.push_str(&format!("&limit={}", limit));
-        }
+                if let Some(limit) = self.query.limit.as_ref() {
+                    url.push_str(&format!("&limit={}", limit));
+                }
 
-        // control parameters
-        if self.continuous {
-            url.push_str("&continuous=true");
-        }
+                // control parameters
+                if self.query.continuous.unwrap_or(false) {
+                    url.push_str("&continuous=true");
+                }
 
-        if let Some(ttl) = self.ttl {
-            url.push_str(&format!("&ttl={}", ttl.as_secs()));
-        }
+                if let Some(ttl) = self.query.ttl.as_ref() {
+                    url.push_str(&format!("&ttl={}", ttl));
+                }
 
-        let response = self
-            .client
-            .send_and_receive_json::<(), QueryInfo>(Method::GET, &url, None)
-            .await?;
+                self.client
+                    .send_and_receive_json::<(), QueryInfo>(Method::GET, &url, None)
+                    .await?
+            }
+        };
 
-        let Self {
-            head_only,
-            bucket,
-            entry,
-            client,
-            ..
-        } = self;
+        let head_only = self.query.only_metadata.as_ref().unwrap_or(&false).clone();
+
         Ok(stream! {
             let mut last = false;
             while !last {
                 let method = if head_only { Method::HEAD } else { Method::GET };
-                let request = client.request(method, &format!("/b/{}/{}/batch?q={}", bucket, entry, response.id));
-                let response = client.send_request(request).await?;
+                let request = self.client.request(method, &format!("/b/{}/{}/batch?q={}", self.bucket, self.entry, response.id));
+                let response = self.client.send_request(request).await?;
 
                 if response.status() == reqwest::StatusCode::NO_CONTENT {
                     break;
@@ -247,7 +258,7 @@ impl QueryBuilder {
  * Builder for a remove query request.
  */
 pub struct RemoveQueryBuilder {
-    base_params: BaseQueryParameters,
+    query: QueryEntry,
 
     bucket: String,
     entry: String,
@@ -257,14 +268,7 @@ pub struct RemoveQueryBuilder {
 impl RemoveQueryBuilder {
     pub(crate) fn new(bucket: String, entry: String, client: Arc<HttpClient>) -> Self {
         Self {
-            base_params: BaseQueryParameters {
-                start: None,
-                stop: None,
-                include: None,
-                exclude: None,
-                each_s: None,
-                each_n: None,
-            },
+            query: QueryEntry::default(),
             bucket,
             entry,
             client,
@@ -273,68 +277,100 @@ impl RemoveQueryBuilder {
 
     /// Set the start time of the query.
     pub fn start(mut self, time: SystemTime) -> Self {
-        self.base_params.start = Some(from_system_time(time));
+        self.query.start = Some(from_system_time(time));
         self
     }
 
     /// Set the start time of the query as a unix timestamp in microseconds.
     pub fn start_us(mut self, time_us: u64) -> Self {
-        self.base_params.start = Some(time_us);
+        self.query.start = Some(time_us);
         self
     }
 
     /// Set the end time of the query.
     pub fn stop(mut self, time: SystemTime) -> Self {
-        self.base_params.stop = Some(from_system_time(time));
+        self.query.stop = Some(from_system_time(time));
         self
     }
 
     /// Set the end time of the query as a unix timestamp in microseconds.
     pub fn stop_us(mut self, time_us: u64) -> Self {
-        self.base_params.stop = Some(time_us);
+        self.query.stop = Some(time_us);
+        self
+    }
+
+    /// Set the condition for the query.
+    /// This will remove all records that match the condition.
+    /// This is a destructive operation.
+    pub fn when(mut self, condition: Value) -> Self {
+        self.query.when = Some(condition);
+        self
+    }
+
+    /// Set the query to be strict.
+    /// If the query is strict, the query will return an error if any of the conditions are invalid.
+    /// default: false
+    pub fn strict(mut self, strict: bool) -> Self {
+        self.query.strict = Some(strict);
         self
     }
 
     /// Set the labels to include in the query.
+    #[deprecated(
+        since = "1.13.0",
+        note = "Use the `when` method to set the labels to include in the query."
+    )]
     pub fn include(mut self, labels: Labels) -> Self {
-        self.base_params.include = Some(labels);
+        self.query.include = Some(labels);
         self
     }
 
     /// Add a label to include in the query.
+    #[deprecated(
+        since = "1.13.0",
+        note = "Use the `when` method to set the labels to include in the query."
+    )]
     pub fn add_include<Str>(mut self, key: Str, value: Str) -> Self
     where
         Str: Into<String>,
     {
-        if let Some(mut labels) = self.base_params.include {
+        if let Some(mut labels) = self.query.include {
             labels.insert(key.into(), value.into());
-            self.base_params.include = Some(labels);
+            self.query.include = Some(labels);
         } else {
             let mut labels = Labels::new();
             labels.insert(key.into(), value.into());
-            self.base_params.include = Some(labels);
+            self.query.include = Some(labels);
         }
         self
     }
 
     /// Set the labels to exclude from the query.
+    #[deprecated(
+        since = "1.13.0",
+        note = "Use the `when` method to set the labels to exclude from the query."
+    )]
     pub fn exclude(mut self, labels: Labels) -> Self {
-        self.base_params.exclude = Some(labels);
+        self.query.exclude = Some(labels);
         self
     }
 
     /// Add a label to exclude from the query.
+    #[deprecated(
+        since = "1.13.0",
+        note = "Use the `when` method to add a label to exclude from the query."
+    )]
     pub fn add_exclude<Str>(mut self, key: Str, value: Str) -> Self
     where
         Str: Into<String>,
     {
-        if let Some(mut labels) = self.base_params.exclude {
+        if let Some(mut labels) = self.query.exclude {
             labels.insert(key.into(), value.into());
-            self.base_params.exclude = Some(labels);
+            self.query.exclude = Some(labels);
         } else {
             let mut labels = Labels::new();
             labels.insert(key.into(), value.into());
-            self.base_params.exclude = Some(labels);
+            self.query.exclude = Some(labels);
         }
         self
     }
@@ -342,14 +378,14 @@ impl RemoveQueryBuilder {
     /// Set S, to return a record every S seconds.
     /// default: return all records
     pub fn each_s(mut self, each_s: f64) -> Self {
-        self.base_params.each_s = Some(each_s);
+        self.query.each_s = Some(each_s);
         self
     }
 
     /// Set N, to return every N records.
     /// default: return all records
     pub fn each_n(mut self, each_n: u64) -> Self {
-        self.base_params.each_n = Some(each_n);
+        self.query.each_n = Some(each_n);
         self
     }
 
@@ -360,17 +396,31 @@ impl RemoveQueryBuilder {
     /// # Returns
     ///
     /// * `Result<u64, ReductError>` - The number of records removed.
-    pub async fn send(self) -> Result<u64, ReductError> {
-        let url = build_base_url(self.base_params, &self.bucket, &self.entry);
-        let response = self
-            .client
-            .send_and_receive_json::<(), RemoveQueryInfo>(Method::DELETE, &url, None)
-            .await?;
+    pub async fn send(mut self) -> Result<u64, ReductError> {
+        let response = match self.query.when {
+            Some(_) => {
+                self.query.query_type = QueryType::Remove;
+                self.client
+                    .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
+                        Method::POST,
+                        &format!("/b/{}/{}/q", self.bucket, self.entry),
+                        Some(self.query.clone()),
+                    )
+                    .await?
+            }
+            None => {
+                let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
+                self.client
+                    .send_and_receive_json::<(), RemoveQueryInfo>(Method::DELETE, &url, None)
+                    .await?
+            }
+        };
+
         Ok(response.removed_records)
     }
 }
 
-fn build_base_url(params: BaseQueryParameters, bucket: &str, entry: &str) -> String {
+fn build_base_url(params: QueryEntry, bucket: &str, entry: &str) -> String {
     let mut url = format!("/b/{}/{}/q?", bucket, entry);
     // filter parameters
     if let Some(start) = params.start {
