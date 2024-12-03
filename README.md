@@ -16,9 +16,9 @@ database for unstructured data.
 ## Example
 
 ```rust
-use bytes::Bytes;
 use futures_util::stream::StreamExt;
 use reduct_rs::{QuotaType, ReductClient, ReductError};
+use serde_json::json;
 use std::pin::pin;
 use std::time::{Duration, SystemTime};
 use tokio;
@@ -40,27 +40,30 @@ async fn main() -> Result<(), ReductError> {
         .send()
         .await?;
 
-    // 3. Write some data with timestamps in the 'sensor-1' entry
+    // 3. Write some data with timestamps and labels to the 'entry-1' entry
     let start = SystemTime::now();
     bucket
         .write_record("sensor-1")
-        .data(b"Record #1")
+        .data("<Blob data>")
         .timestamp(start)
+        .add_label("score", 10)
         .send()
         .await?;
 
     bucket
         .write_record("sensor-1")
-        .data(b"Record #2")
+        .data("<Blob data>")
         .timestamp(start + Duration::from_secs(1))
+        .add_label("score", 20)
         .send()
         .await?;
 
-    // 4. Query the data by time range
+    // 4. Query the data by time range and condition
     let query = bucket
         .query("sensor-1")
         .start(start)
         .stop(start + Duration::from_secs(2))
+        .when(json!({"&score": {"$gt": 15}}))
         .send()
         .await?;
 
@@ -74,8 +77,6 @@ async fn main() -> Result<(), ReductError> {
 
     // 5. Exit
     Ok(())
-}
-
 }
 
 ```
