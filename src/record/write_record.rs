@@ -63,10 +63,10 @@ impl WriteRecordBuilder {
     /// Add a label to the record to write.
     pub fn add_label<Str1, Str2>(mut self, key: Str1, value: Str2) -> Self
     where
-        Str1: Into<String>,
-        Str2: Into<String>,
+        Str1: ToString,
+        Str2: ToString,
     {
-        self.labels.insert(key.into(), value.into());
+        self.labels.insert(key.to_string(), value.to_string());
         self
     }
 
