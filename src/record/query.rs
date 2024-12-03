@@ -299,6 +299,22 @@ impl RemoveQueryBuilder {
         self
     }
 
+    /// Set the condition for the query.
+    /// This will remove all records that match the condition.
+    /// This is a destructive operation.
+    pub fn when(mut self, condition: Value) -> Self {
+        self.query.when = Some(condition);
+        self
+    }
+
+    /// Set the query to be strict.
+    /// If the query is strict, the query will return an error if any of the conditions are invalid.
+    /// default: false
+    pub fn strict(mut self, strict: bool) -> Self {
+        self.query.strict = Some(strict);
+        self
+    }
+
     /// Set the labels to include in the query.
     #[deprecated(
         since = "1.13.0",
@@ -380,12 +396,26 @@ impl RemoveQueryBuilder {
     /// # Returns
     ///
     /// * `Result<u64, ReductError>` - The number of records removed.
-    pub async fn send(self) -> Result<u64, ReductError> {
-        let url = build_base_url(self.query, &self.bucket, &self.entry);
-        let response = self
-            .client
-            .send_and_receive_json::<(), RemoveQueryInfo>(Method::DELETE, &url, None)
-            .await?;
+    pub async fn send(mut self) -> Result<u64, ReductError> {
+        let response = match self.query.when {
+            Some(_) => {
+                self.query.query_type = QueryType::Remove;
+                self.client
+                    .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
+                        Method::POST,
+                        &format!("/b/{}/{}/q", self.bucket, self.entry),
+                        Some(self.query.clone()),
+                    )
+                    .await?
+            }
+            None => {
+                let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
+                self.client
+                    .send_and_receive_json::<(), RemoveQueryInfo>(Method::DELETE, &url, None)
+                    .await?
+            }
+        };
+
         Ok(response.removed_records)
     }
 }
