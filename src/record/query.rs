@@ -14,7 +14,7 @@ use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
 use reduct_base::batch::{parse_batched_header, sort_headers_by_time, RecordHeader};
 use reduct_base::error::ReductError;
-use reduct_base::msg::entry_api::{QueryEntry, QueryInfo, RemoveQueryInfo};
+use reduct_base::msg::entry_api::{QueryEntry, QueryInfo, QueryType, RemoveQueryInfo};
 use reduct_base::Labels;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Method;
@@ -68,6 +68,14 @@ impl QueryBuilder {
     /// Set the condition for the query.
     pub fn when(mut self, condition: Value) -> Self {
         self.query.when = Some(condition);
+        self
+    }
+
+    /// Set the query to be strict.
+    /// If the query is strict, the query will return an error if any of the conditions are invalid.
+    /// default: false
+    pub fn strict(mut self, strict: bool) -> Self {
+        self.query.strict = Some(strict);
         self
     }
 
@@ -173,29 +181,43 @@ impl QueryBuilder {
 
     /// Send the query request.
     pub async fn send(
-        self,
+        mut self,
     ) -> Result<impl Stream<Item = Result<Record, ReductError>>, ReductError> {
-        let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
+        let response = match self.query.when {
+            Some(_) => {
+                self.query.query_type = QueryType::Query;
+                self.client
+                    .send_and_receive_json::<QueryEntry, QueryInfo>(
+                        Method::POST,
+                        &format!("/b/{}/{}/q", self.bucket, self.entry),
+                        Some(self.query.clone()),
+                    )
+                    .await?
+            }
+            None => {
+                let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
 
-        if let Some(limit) = self.query.limit.as_ref() {
-            url.push_str(&format!("&limit={}", limit));
-        }
+                if let Some(limit) = self.query.limit.as_ref() {
+                    url.push_str(&format!("&limit={}", limit));
+                }
 
-        // control parameters
-        if let Some(continuous) = self.query.continuous.as_ref() {
-            url.push_str("&continuous=true");
-        }
+                // control parameters
+                if self.query.continuous.unwrap_or(false) {
+                    url.push_str("&continuous=true");
+                }
 
-        if let Some(ttl) = self.query.ttl.as_ref() {
-            url.push_str(&format!("&ttl={}", ttl));
-        }
+                if let Some(ttl) = self.query.ttl.as_ref() {
+                    url.push_str(&format!("&ttl={}", ttl));
+                }
 
-        let response = self
-            .client
-            .send_and_receive_json::<(), QueryInfo>(Method::GET, &url, None)
-            .await?;
+                self.client
+                    .send_and_receive_json::<(), QueryInfo>(Method::GET, &url, None)
+                    .await?
+            }
+        };
 
         let head_only = self.query.only_metadata.as_ref().unwrap_or(&false).clone();
+
         Ok(stream! {
             let mut last = false;
             while !last {

@@ -276,7 +276,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn test_bucket_rename_entry(#[future] bucket: Bucket) {
         let bucket = bucket.await;
         bucket.rename_entry("entry-1", "new-entry-1").await.unwrap();
@@ -286,7 +285,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-112"), ignore)]
     async fn test_bucket_rename(#[future] bucket: Bucket) {
         let mut bucket = bucket.await;
         bucket.rename("new-bucket").await.unwrap();
