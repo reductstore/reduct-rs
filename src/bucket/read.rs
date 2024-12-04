@@ -74,7 +74,6 @@ mod tests {
     use futures_util::StreamExt;
     use rstest::rstest;
     use serde_json::json;
-    use std::time::SystemTime;
 
     #[rstest]
     #[tokio::test]

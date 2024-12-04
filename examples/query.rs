@@ -5,6 +5,7 @@
 
 use futures_util::StreamExt;
 use reduct_rs::{ReductClient, ReductError};
+use serde_json::json;
 use std::str::from_utf8;
 
 #[tokio::main]
@@ -31,7 +32,7 @@ async fn main() -> Result<(), ReductError> {
 
     let query = bucket
         .query("entry-1")
-        .add_include("planet", "Earth")
+        .when(json!({"&planet": {"$eq": "Mars"}}))
         .send()
         .await?;
 

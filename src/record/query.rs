@@ -409,7 +409,7 @@ impl RemoveQueryBuilder {
                     .await?
             }
             None => {
-                let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
+                let url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
                 self.client
                     .send_and_receive_json::<(), RemoveQueryInfo>(Method::DELETE, &url, None)
                     .await?
