@@ -539,6 +539,7 @@ pub(crate) mod tests {
 
     mod replication_api {
         use super::*;
+        use crate::condition;
         use reduct_base::msg::diagnostics::Diagnostics;
         use reduct_base::msg::replication_api::ReplicationSettings;
 
@@ -567,6 +568,7 @@ pub(crate) mod tests {
                 .exclude(settings.exclude.clone())
                 .each_s(settings.each_s.unwrap())
                 .each_n(settings.each_n.unwrap())
+                .when(settings.when.unwrap())
                 .send()
                 .await
                 .unwrap();
@@ -662,6 +664,7 @@ pub(crate) mod tests {
                 exclude: Labels::default(),
                 each_s: Some(1.0),
                 each_n: Some(1),
+                when: Some(condition!({"$eq": ["&label", 1]})),
             }
         }
     }

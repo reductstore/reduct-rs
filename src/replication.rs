@@ -33,6 +33,7 @@ impl ReplicationBuilder {
                 exclude: Default::default(),
                 each_s: None,
                 each_n: None,
+                when: None,
             },
             http_client,
         }
@@ -92,7 +93,8 @@ impl ReplicationBuilder {
     /// # Arguments
     ///
     /// * `include` - Replication include. If empty, all labels will be replicated.
-    ///         If a few labels are specified, records must have all of them to be replicated.
+    ///
+    #[deprecated(since = "1.14.0", note = "Use the `when` method instead.")]
     pub fn include(mut self, include: Labels) -> Self {
         self.settings.include = include;
         self
@@ -104,6 +106,7 @@ impl ReplicationBuilder {
     ///
     /// * `exclude` - Replication exclude. If empty, no labels will be excluded.
     ///        If a few labels are specified, records must have none of them to be replicated.
+    #[deprecated(since = "1.14.0", note = "Use the `when` method instead.")]
     pub fn exclude(mut self, exclude: Labels) -> Self {
         self.settings.exclude = exclude;
         self
@@ -130,6 +133,16 @@ impl ReplicationBuilder {
     /// * `each_n` - Replicate every Nth record.
     pub fn each_n(mut self, each_n: u64) -> Self {
         self.settings.each_n = Some(each_n);
+        self
+    }
+
+    /// Set the replication conditional query.
+    ///
+    /// # Arguments
+    ///
+    /// * `when` - Conditional query.
+    pub fn when(mut self, when: serde_json::Value) -> Self {
+        self.settings.when = Some(when);
         self
     }
 

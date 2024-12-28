@@ -4,8 +4,7 @@
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use futures_util::StreamExt;
-use reduct_rs::{ReductClient, ReductError};
-use serde_json::json;
+use reduct_rs::{condition, ReductClient, ReductError};
 use std::str::from_utf8;
 
 #[tokio::main]
@@ -32,7 +31,7 @@ async fn main() -> Result<(), ReductError> {
 
     let query = bucket
         .query("entry-1")
-        .when(json!({"&planet": {"$eq": "Mars"}}))
+        .when(condition!({"&planet": {"$eq": "Mars"}}))
         .send()
         .await?;
 
