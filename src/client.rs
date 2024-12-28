@@ -539,6 +539,7 @@ pub(crate) mod tests {
 
     mod replication_api {
         use super::*;
+        use crate::condition;
         use reduct_base::msg::diagnostics::Diagnostics;
         use reduct_base::msg::replication_api::ReplicationSettings;
 
@@ -551,6 +552,7 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
+        #[cfg_attr(not(feature = "test-api-114"), ignore)]
         async fn test_create_replication(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
@@ -563,10 +565,9 @@ pub(crate) mod tests {
                 .dst_host(settings.dst_host.as_str())
                 .dst_token(settings.dst_token.as_str())
                 .entries(settings.entries.clone())
-                .include(settings.include.clone())
-                .exclude(settings.exclude.clone())
                 .each_s(settings.each_s.unwrap())
                 .each_n(settings.each_n.unwrap())
+                .when(settings.when.unwrap())
                 .send()
                 .await
                 .unwrap();
@@ -576,6 +577,7 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
+        #[cfg_attr(not(feature = "test-api-114"), ignore)]
         async fn test_get_replication(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
@@ -610,6 +612,7 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
+        #[cfg_attr(not(feature = "test-api-114"), ignore)]
         async fn test_update_replication(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
@@ -662,6 +665,7 @@ pub(crate) mod tests {
                 exclude: Labels::default(),
                 each_s: Some(1.0),
                 each_n: Some(1),
+                when: Some(condition!({"$eq": ["&label", 1]})),
             }
         }
     }
