@@ -552,6 +552,7 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
+        #[cfg_attr(not(feature = "test-api-114"), ignore)]
         async fn test_create_replication(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
@@ -564,8 +565,6 @@ pub(crate) mod tests {
                 .dst_host(settings.dst_host.as_str())
                 .dst_token(settings.dst_token.as_str())
                 .entries(settings.entries.clone())
-                .include(settings.include.clone())
-                .exclude(settings.exclude.clone())
                 .each_s(settings.each_s.unwrap())
                 .each_n(settings.each_n.unwrap())
                 .when(settings.when.unwrap())
@@ -612,6 +611,7 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
+        #[cfg_attr(not(feature = "test-api-114"), ignore)]
         async fn test_update_replication(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
