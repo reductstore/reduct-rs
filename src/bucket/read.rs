@@ -224,7 +224,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-113"), ignore)]
     async fn test_query_when(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let query = bucket
@@ -246,7 +245,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-113"), ignore)]
     async fn test_query_when_strict(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let query = bucket
