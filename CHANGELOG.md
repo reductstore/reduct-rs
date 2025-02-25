@@ -7,13 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Added
+## [1.14.0] - 2025-02-25
+
+### Added
 
 - RS-550: Add support for when condition on replication settings, [PR-29](https://github.com/reductstore/reduct-rs/pull/29)
 
 ## [1.13.0] - 2024-12-04
 
-## Added
+### Added
 
 - RS-543: Support conditional query, [PR-28](https://github.com/reductstore/reduct-rs/pull/28)
 
@@ -33,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RS-462: Improve batching, [PR-26](https://github.com/reductstore/reduct-rs/pull/26)
 - Minimal Rust version is 1.80
 
-## Changed
+### Changed
 
 - RS-418: Use builder in `Bucket.remove_record` call, [PR-20](https://github.com/reductstore/reduct-rs/pull/20)
 
@@ -101,7 +103,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Part of https://github.com/reductstore/reductstore
 
-[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.13.0...HEAD
+[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.14.0...HEAD
+
+[1.14.0]: https://github.com/reductstore/reduct-rs/compare/v1.13.0...v1.14.0
 
 [1.13.0]: https://github.com/reductstore/reduct-rs/compare/v1.12.1...v1.13.0
 
