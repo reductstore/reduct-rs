@@ -67,7 +67,7 @@ impl Bucket {
 #[cfg(test)]
 mod tests {
     use crate::bucket::tests::bucket;
-    use crate::Bucket;
+    use crate::{ext, Bucket};
     use bytes::Bytes;
     use chrono::Duration;
     use futures::pin_mut;
@@ -271,5 +271,25 @@ mod tests {
         let query = query.unwrap();
         pin_mut!(query);
         assert!(query.next().await.unwrap().is_err());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[cfg_attr(not(feature = "test-api-115"), ignore)]
+    async fn test_query_ext(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let query = bucket
+            .query("entry-1")
+            .ext(ext!({
+                "test": { "param": 1}
+            }))
+            .send()
+            .await;
+
+        assert!(query
+            .err()
+            .unwrap()
+            .message()
+            .starts_with("Unknown extension"))
     }
 }

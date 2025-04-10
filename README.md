@@ -9,7 +9,7 @@ database for unstructured data.
 
 ## Features
 
-* Supports the [ReductStore HTTP API v1.14](https://www.reduct.store/docs/http-api)
+* Supports the [ReductStore HTTP API v1.15](https://www.reduct.store/docs/http-api)
 * Built on top of [reqwest](https://github.com/seanmonstar/reqwest)
 * Asynchronous API
 

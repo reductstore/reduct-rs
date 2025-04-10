@@ -552,7 +552,6 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
-        #[cfg_attr(not(feature = "test-api-114"), ignore)]
         async fn test_create_replication(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
@@ -577,7 +576,6 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
-        #[cfg_attr(not(feature = "test-api-114"), ignore)]
         async fn test_get_replication(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
@@ -594,7 +592,7 @@ pub(crate) mod tests {
                 replication.info,
                 ReplicationInfo {
                     name: "test-replication".to_string(),
-                    is_active: false,
+                    is_active: true,
                     is_provisioned: false,
                     pending_records: 0,
                 }
@@ -612,7 +610,6 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
-        #[cfg_attr(not(feature = "test-api-114"), ignore)]
         async fn test_update_replication(
             #[future] client: ReductClient,
             settings: ReplicationSettings,

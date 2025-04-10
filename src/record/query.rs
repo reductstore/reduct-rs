@@ -79,6 +79,13 @@ impl QueryBuilder {
         self
     }
 
+    /// Set extension parameters for the query.
+    /// This is a JSON object that will be passed to extensions on the server side.
+    pub fn ext(mut self, ext: Value) -> Self {
+        self.query.ext = Some(ext);
+        self
+    }
+
     /// Set the labels to include in the query.
     #[deprecated(
         since = "1.13.0",
@@ -183,37 +190,36 @@ impl QueryBuilder {
     pub async fn send(
         mut self,
     ) -> Result<impl Stream<Item = Result<Record, ReductError>>, ReductError> {
-        let response = match self.query.when {
-            Some(_) => {
-                self.query.query_type = QueryType::Query;
-                self.client
-                    .send_and_receive_json::<QueryEntry, QueryInfo>(
-                        Method::POST,
-                        &format!("/b/{}/{}/q", self.bucket, self.entry),
-                        Some(self.query.clone()),
-                    )
-                    .await?
+        let response = if self.query.when.is_some() || self.query.ext.is_some() {
+            // use new POST API for new features
+            self.query.query_type = QueryType::Query;
+            self.client
+                .send_and_receive_json::<QueryEntry, QueryInfo>(
+                    Method::POST,
+                    &format!("/b/{}/{}/q", self.bucket, self.entry),
+                    Some(self.query.clone()),
+                )
+                .await?
+        } else {
+            // TODO: must be removed in the future
+            let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
+
+            if let Some(limit) = self.query.limit.as_ref() {
+                url.push_str(&format!("&limit={}", limit));
             }
-            None => {
-                let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
 
-                if let Some(limit) = self.query.limit.as_ref() {
-                    url.push_str(&format!("&limit={}", limit));
-                }
-
-                // control parameters
-                if self.query.continuous.unwrap_or(false) {
-                    url.push_str("&continuous=true");
-                }
-
-                if let Some(ttl) = self.query.ttl.as_ref() {
-                    url.push_str(&format!("&ttl={}", ttl));
-                }
-
-                self.client
-                    .send_and_receive_json::<(), QueryInfo>(Method::GET, &url, None)
-                    .await?
+            // control parameters
+            if self.query.continuous.unwrap_or(false) {
+                url.push_str("&continuous=true");
             }
+
+            if let Some(ttl) = self.query.ttl.as_ref() {
+                url.push_str(&format!("&ttl={}", ttl));
+            }
+
+            self.client
+                .send_and_receive_json::<(), QueryInfo>(Method::GET, &url, None)
+                .await?
         };
 
         let head_only = self.query.only_metadata.as_ref().unwrap_or(&false).clone();
