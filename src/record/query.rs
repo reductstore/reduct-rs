@@ -190,7 +190,7 @@ impl QueryBuilder {
     pub async fn send(
         mut self,
     ) -> Result<impl Stream<Item = Result<Record, ReductError>>, ReductError> {
-        let response = if self.query.when.is_some() || self.query.ttl.is_some() {
+        let response = if self.query.when.is_some() || self.query.ext.is_some() {
             // use new POST API for new features
             self.query.query_type = QueryType::Query;
             self.client

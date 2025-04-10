@@ -592,7 +592,7 @@ pub(crate) mod tests {
                 replication.info,
                 ReplicationInfo {
                     name: "test-replication".to_string(),
-                    is_active: false,
+                    is_active: true,
                     is_provisioned: false,
                     pending_records: 0,
                 }
