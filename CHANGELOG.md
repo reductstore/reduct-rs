@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- RS-628: Support `ext` parameter to `QueryBuilder`, [PR-32](https://github.com/reductstore/reduct-rs/pull/32)
+
 ## [1.14.0] - 2025-02-25
 
 ### Added
