@@ -38,7 +38,7 @@ jobs:
         reductstore_version: [ "main", "latest" ]
         include:
           - reductstore_version: main
-            features: "default,test-api-114"
+            features: "default,test-api-115"
           - reductstore_version: latest
             features: "default"
     needs:
@@ -50,6 +50,7 @@ jobs:
       - name: Run Database
         run: docker run --network=host -v ${PWD}/misc:/misc
           --env RS_API_TOKEN=TOKEN
+          --env RS_EXT_PATH=/tmp
           --env RS_LICENSE_PATH=/misc/lic.key -d reduct/store:${{ matrix.reductstore_version }}
       - name: Run Client SDK tests
         run: RS_API_TOKEN=TOKEN cargo test --features ${{ matrix.features }} -- --test-threads=1
