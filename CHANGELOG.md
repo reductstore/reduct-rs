@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.0] - 2025-05-07
+
 ### Added
 
 - RS-628: Support `ext` parameter to `QueryBuilder`, [PR-32](https://github.com/reductstore/reduct-rs/pull/32)
@@ -107,7 +109,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Part of https://github.com/reductstore/reductstore
 
-[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.14.0...HEAD
+[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.15.0...HEAD
+
+[1.15.0]: https://github.com/reductstore/reduct-rs/compare/v1.14.0...v1.15.0
 
 [1.14.0]: https://github.com/reductstore/reduct-rs/compare/v1.13.0...v1.14.0
 
