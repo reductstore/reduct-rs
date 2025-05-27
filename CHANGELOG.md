@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Minimal Rust version is 1.85, [PR-36](https://github.com/reductstore/reduct-rs/pull/36)
+
 ## [1.15.0] - 2025-05-07
 
 ### Added
