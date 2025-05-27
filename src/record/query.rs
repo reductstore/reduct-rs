@@ -119,7 +119,7 @@ impl QueryBuilder {
     /// Set the labels to exclude from the query.
     #[deprecated(
         since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query."
+        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
     )]
     pub fn exclude(mut self, labels: Labels) -> Self {
         self.query.exclude = Some(labels);
@@ -129,7 +129,7 @@ impl QueryBuilder {
     /// Add a label to exclude from the query.
     #[deprecated(
         since = "1.13.0",
-        note = "Use the `when` method to add a label to exclude from the query."
+        note = "Use the `when` method to add a label to exclude from the query. It will be remove in v1.16.0."
     )]
     pub fn add_exclude<Str>(mut self, key: Str, value: Str) -> Self
     where
@@ -148,6 +148,10 @@ impl QueryBuilder {
 
     /// Set S, to return a record every S seconds.
     /// default: return all records
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$each_t` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn each_s(mut self, each_s: f64) -> Self {
         self.query.each_s = Some(each_s);
         self
@@ -155,6 +159,10 @@ impl QueryBuilder {
 
     /// Set N, to return every N records.
     /// default: return all records
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$each_n` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn each_n(mut self, each_n: u64) -> Self {
         self.query.each_n = Some(each_n);
         self
@@ -162,6 +170,10 @@ impl QueryBuilder {
 
     /// Set a limit for the query.
     /// default: unlimited
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$limit` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn limit(mut self, limit: u64) -> Self {
         self.query.limit = Some(limit);
         self
