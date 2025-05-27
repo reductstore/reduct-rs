@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Drop support for legacy code and ReductStore API versions below 1.13
+
 ### Added
 
 - Check server API version and warn if it's too old, [PR-34](https://github.com/reductstore/reduct-rs/pull/34)
@@ -14,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Deprecated
 
 - `each_n`, `each_s` and `limit` parameters in `QueryBuilder` and `ReplicationSettings` are deprecated, use conditional operators instead,  [PR-34](https://github.com/reductstore/reduct-rs/pull/34)
+
+## Removed
+
+- Remove legacy code in remove query, [PR-35](https://github.com/reductstore/reduct-rs/pull/35)
 
 ## [1.15.0] - 2025-05-07
 
