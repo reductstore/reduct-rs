@@ -94,7 +94,10 @@ impl ReplicationBuilder {
     ///
     /// * `include` - Replication include. If empty, all labels will be replicated.
     ///
-    #[deprecated(since = "1.14.0", note = "Use the `when` method instead.")]
+    #[deprecated(
+        since = "1.14.0",
+        note = "Use the `when` method instead. It will be removed in v1.18.0."
+    )]
     pub fn include(mut self, include: Labels) -> Self {
         self.settings.include = include;
         self
@@ -106,7 +109,10 @@ impl ReplicationBuilder {
     ///
     /// * `exclude` - Replication exclude. If empty, no labels will be excluded.
     ///        If a few labels are specified, records must have none of them to be replicated.
-    #[deprecated(since = "1.14.0", note = "Use the `when` method instead.")]
+    #[deprecated(
+        since = "1.14.0",
+        note = "Use the `when` method instead. It will be removed in v1.18.0."
+    )]
     pub fn exclude(mut self, exclude: Labels) -> Self {
         self.settings.exclude = exclude;
         self
@@ -119,6 +125,10 @@ impl ReplicationBuilder {
     /// # Arguments
     ///
     /// * `each_s` - Replicate a record every S seconds.
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$each_t` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn each_s(mut self, each_s: f64) -> Self {
         self.settings.each_s = Some(each_s);
         self
@@ -131,6 +141,10 @@ impl ReplicationBuilder {
     /// # Arguments
     ///
     /// * `each_n` - Replicate every Nth record.
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$each_n` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn each_n(mut self, each_n: u64) -> Self {
         self.settings.each_n = Some(each_n);
         self

@@ -119,7 +119,7 @@ impl QueryBuilder {
     /// Set the labels to exclude from the query.
     #[deprecated(
         since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query."
+        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
     )]
     pub fn exclude(mut self, labels: Labels) -> Self {
         self.query.exclude = Some(labels);
@@ -129,7 +129,7 @@ impl QueryBuilder {
     /// Add a label to exclude from the query.
     #[deprecated(
         since = "1.13.0",
-        note = "Use the `when` method to add a label to exclude from the query."
+        note = "Use the `when` method to add a label to exclude from the query. It will be remove in v1.16.0."
     )]
     pub fn add_exclude<Str>(mut self, key: Str, value: Str) -> Self
     where
@@ -148,6 +148,10 @@ impl QueryBuilder {
 
     /// Set S, to return a record every S seconds.
     /// default: return all records
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$each_t` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn each_s(mut self, each_s: f64) -> Self {
         self.query.each_s = Some(each_s);
         self
@@ -155,6 +159,10 @@ impl QueryBuilder {
 
     /// Set N, to return every N records.
     /// default: return all records
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$each_n` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn each_n(mut self, each_n: u64) -> Self {
         self.query.each_n = Some(each_n);
         self
@@ -162,6 +170,10 @@ impl QueryBuilder {
 
     /// Set a limit for the query.
     /// default: unlimited
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$limit` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn limit(mut self, limit: u64) -> Self {
         self.query.limit = Some(limit);
         self
@@ -190,37 +202,16 @@ impl QueryBuilder {
     pub async fn send(
         mut self,
     ) -> Result<impl Stream<Item = Result<Record, ReductError>>, ReductError> {
-        let response = if self.query.when.is_some() || self.query.ext.is_some() {
-            // use new POST API for new features
-            self.query.query_type = QueryType::Query;
-            self.client
-                .send_and_receive_json::<QueryEntry, QueryInfo>(
-                    Method::POST,
-                    &format!("/b/{}/{}/q", self.bucket, self.entry),
-                    Some(self.query.clone()),
-                )
-                .await?
-        } else {
-            // TODO: must be removed in the future
-            let mut url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
-
-            if let Some(limit) = self.query.limit.as_ref() {
-                url.push_str(&format!("&limit={}", limit));
-            }
-
-            // control parameters
-            if self.query.continuous.unwrap_or(false) {
-                url.push_str("&continuous=true");
-            }
-
-            if let Some(ttl) = self.query.ttl.as_ref() {
-                url.push_str(&format!("&ttl={}", ttl));
-            }
-
-            self.client
-                .send_and_receive_json::<(), QueryInfo>(Method::GET, &url, None)
-                .await?
-        };
+        // use new POST API for new features
+        self.query.query_type = QueryType::Query;
+        let response = self
+            .client
+            .send_and_receive_json::<QueryEntry, QueryInfo>(
+                Method::POST,
+                &format!("/b/{}/{}/q", self.bucket, self.entry),
+                Some(self.query.clone()),
+            )
+            .await?;
 
         let head_only = self.query.only_metadata.as_ref().unwrap_or(&false).clone();
 
@@ -324,7 +315,7 @@ impl RemoveQueryBuilder {
     /// Set the labels to include in the query.
     #[deprecated(
         since = "1.13.0",
-        note = "Use the `when` method to set the labels to include in the query."
+        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
     )]
     pub fn include(mut self, labels: Labels) -> Self {
         self.query.include = Some(labels);
@@ -334,7 +325,7 @@ impl RemoveQueryBuilder {
     /// Add a label to include in the query.
     #[deprecated(
         since = "1.13.0",
-        note = "Use the `when` method to set the labels to include in the query."
+        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
     )]
     pub fn add_include<Str>(mut self, key: Str, value: Str) -> Self
     where
@@ -354,7 +345,7 @@ impl RemoveQueryBuilder {
     /// Set the labels to exclude from the query.
     #[deprecated(
         since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query."
+        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
     )]
     pub fn exclude(mut self, labels: Labels) -> Self {
         self.query.exclude = Some(labels);
@@ -364,7 +355,7 @@ impl RemoveQueryBuilder {
     /// Add a label to exclude from the query.
     #[deprecated(
         since = "1.13.0",
-        note = "Use the `when` method to add a label to exclude from the query."
+        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
     )]
     pub fn add_exclude<Str>(mut self, key: Str, value: Str) -> Self
     where
@@ -383,6 +374,10 @@ impl RemoveQueryBuilder {
 
     /// Set S, to return a record every S seconds.
     /// default: return all records
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$each_t` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn each_s(mut self, each_s: f64) -> Self {
         self.query.each_s = Some(each_s);
         self
@@ -390,6 +385,10 @@ impl RemoveQueryBuilder {
 
     /// Set N, to return every N records.
     /// default: return all records
+    #[deprecated(
+        since = "1.15.0",
+        note = "Use `$each_n` operator in `when` condition. It will be removed in v1.18.0."
+    )]
     pub fn each_n(mut self, each_n: u64) -> Self {
         self.query.each_n = Some(each_n);
         self
