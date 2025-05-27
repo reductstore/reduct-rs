@@ -402,59 +402,18 @@ impl RemoveQueryBuilder {
     ///
     /// * `Result<u64, ReductError>` - The number of records removed.
     pub async fn send(mut self) -> Result<u64, ReductError> {
-        let response = match self.query.when {
-            Some(_) => {
-                self.query.query_type = QueryType::Remove;
-                self.client
-                    .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
-                        Method::POST,
-                        &format!("/b/{}/{}/q", self.bucket, self.entry),
-                        Some(self.query.clone()),
-                    )
-                    .await?
-            }
-            None => {
-                let url = build_base_url(self.query.clone(), &self.bucket, &self.entry);
-                self.client
-                    .send_and_receive_json::<(), RemoveQueryInfo>(Method::DELETE, &url, None)
-                    .await?
-            }
-        };
+        self.query.query_type = QueryType::Remove;
+        let response = self
+            .client
+            .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
+                Method::POST,
+                &format!("/b/{}/{}/q", self.bucket, self.entry),
+                Some(self.query.clone()),
+            )
+            .await?;
 
         Ok(response.removed_records)
     }
-}
-
-fn build_base_url(params: QueryEntry, bucket: &str, entry: &str) -> String {
-    let mut url = format!("/b/{}/{}/q?", bucket, entry);
-    // filter parameters
-    if let Some(start) = params.start {
-        url.push_str(&format!("start={}", start));
-    }
-
-    if let Some(stop) = params.stop {
-        url.push_str(&format!("&stop={}", stop));
-    }
-
-    if let Some(include) = &params.include {
-        for (key, value) in include {
-            url.push_str(&format!("&include-{}={}", key, value));
-        }
-    }
-    if let Some(exclude) = &params.exclude {
-        for (key, value) in exclude {
-            url.push_str(&format!("&exclude-{}={}", key, value));
-        }
-    }
-
-    if let Some(each_s) = params.each_s {
-        url.push_str(&format!("&each_s={}", each_s));
-    }
-
-    if let Some(each_n) = params.each_n {
-        url.push_str(&format!("&each_n={}", each_n));
-    }
-    url
 }
 
 async fn parse_batched_records(
