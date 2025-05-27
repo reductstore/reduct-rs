@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Check server API version and warn if it's too old, [PR-34](https://github.com/reductstore/reduct-rs/pull/34)
+
+## Deprecated
+
+- `each_n`, `each_s` and `limit` parameters in `QueryBuilder` and `ReplicationSettings` are deprecated, use conditional operators instead,  [PR-34](https://github.com/reductstore/reduct-rs/pull/34)
+
 ## [1.15.0] - 2025-05-07
 
 ### Added
