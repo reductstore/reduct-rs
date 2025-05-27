@@ -103,6 +103,8 @@ impl HttpClient {
         let response = match request.send().await {
             Ok(response) => {
                 if response.status().is_success() {
+                    Self::check_server_api_version(&response)?;
+
                     Ok(response)
                 } else {
                     let status = ErrorCode::from_int(response.status().as_u16() as i16)
@@ -120,6 +122,53 @@ impl HttpClient {
             Err(e) => Err(map_error(e)),
         };
         response
+    }
+
+    fn check_server_api_version(response: &Response) -> Result<()> {
+        let Some(api_version) = response
+            .headers()
+            .get("x-reduct-api")
+            .and_then(|v| v.to_str().ok())
+        else {
+            return Err(ReductError::new(
+                ErrorCode::Unknown,
+                "Missing x-reduct-api header",
+            ));
+        };
+
+        let (major, minor) = api_version
+            .split_once('.')
+            .ok_or_else(|| ReductError::new(ErrorCode::Unknown, "Invalid x-reduct-api header"))?;
+        let major = major
+            .parse::<u32>()
+            .map_err(|_| ReductError::new(ErrorCode::Unknown, "Invalid x-reduct-api header"))?;
+        let minor = minor
+            .parse::<u32>()
+            .map_err(|_| ReductError::new(ErrorCode::Unknown, "Invalid x-reduct-api header"))?;
+
+        if major != env!("CARGO_PKG_VERSION_MAJOR").parse::<u32>().unwrap() {
+            return Err(ReductError::new(
+                ErrorCode::Unknown,
+                &format!(
+                    "Unsupported API version: {}.{} (client: {}.{})",
+                    major,
+                    minor,
+                    env!("CARGO_PKG_VERSION_MAJOR"),
+                    env!("CARGO_PKG_VERSION_MINOR")
+                ),
+            ));
+        }
+
+        if minor + 2 < env!("CARGO_PKG_VERSION_MINOR").parse().unwrap() {
+            eprintln!(
+                "Warning: Server API version is too old: {}, please update the server to {}.{}",
+                api_version,
+                env!("CARGO_PKG_VERSION_MAJOR"),
+                env!("CARGO_PKG_VERSION_MINOR")
+            );
+        }
+
+        Ok(())
     }
 }
 
