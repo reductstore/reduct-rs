@@ -70,6 +70,20 @@ jobs:
       - name: Run Client SDK tests
         run: cargo run --example ${{matrix.example}}
 
+  dry_publish:
+    runs-on: ubuntu-latest
+    name: Dry run publish
+    needs:
+      - rust_fmt
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.MINIMAL_RUST_VERSION }}
+      - name: Dry run publish reduct-rs
+        run: cargo publish --dry-run -p reduct-rs
+
   check_tag:
     runs-on: ubuntu-latest
     name: Check tag
