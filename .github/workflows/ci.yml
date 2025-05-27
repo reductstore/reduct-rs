@@ -105,6 +105,7 @@ jobs:
       - sdk_tests
       - sdk_examples
       - check_tag # Only publish on tags
+      - dry_publish
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v2
