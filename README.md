@@ -9,7 +9,7 @@ database for unstructured data.
 
 ## Features
 
-* Supports the [ReductStore HTTP API v1.15](https://www.reduct.store/docs/http-api)
+* Supports the [ReductStore HTTP API v1.16](https://www.reduct.store/docs/http-api)
 * Built on top of [reqwest](https://github.com/seanmonstar/reqwest)
 * Asynchronous API
 
@@ -90,9 +90,9 @@ The library is backward compatible with the previous versions. However, some met
 removed in the future releases. Please refer to the [Changelog](CHANGELOG.md) for more details.
 The SDK supports the following ReductStore API versions:
 
+* v1.16
 * v1.15
 * v1.14
-* v1.13
 
 It can work with newer and older versions, but it is not guaranteed that all features will work as expected because
 the API may change and some features may be deprecated or the SDK may not support them yet.
