@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Remove legacy code in remove query, [PR-35](https://github.com/reductstore/reduct-rs/pull/35)
 
+## [1.15.2] - 2025-06-11
+
+### Fixed
+
+- Fix parsing url with prefix, [PR-37](https://github.com/reductstore/reduct-rs/pull/37)
 
 ## [1.15.1] - 2025-05-27
 
@@ -132,7 +137,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Part of https://github.com/reductstore/reductstore
 
-[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.15.0...HEAD
+[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.15.2...HEAD
+
+[1.15.0]: https://github.com/reductstore/reduct-rs/compare/v1.15.1...v1.15.2
+
+[1.15.0]: https://github.com/reductstore/reduct-rs/compare/v1.15.0...v1.15.1
 
 [1.15.0]: https://github.com/reductstore/reduct-rs/compare/v1.14.0...v1.15.0
 
