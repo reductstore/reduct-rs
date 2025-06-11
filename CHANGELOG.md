@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix parsing url with prefix, [PR-37](https://github.com/reductstore/reduct-rs/pull/37)
+
 ## [1.15.1] - 2025-05-27
 
 ### Changed
