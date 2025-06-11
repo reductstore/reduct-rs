@@ -3,7 +3,7 @@
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::client::Result;
+use crate::client::{Result, API_BASE};
 use reduct_base::error::{ErrorCode, IntEnum, ReductError};
 use reqwest::header::HeaderValue;
 use reqwest::{Method, RequestBuilder, Response, Url};
@@ -25,9 +25,7 @@ impl HttpClient {
     }
 
     pub fn url(&self) -> &str {
-        const API_BASE: &str = "/api/v1";
         &self.base_url.as_str()[..self.base_url.as_str().len() - API_BASE.len()]
-        // Remove API_BASE
     }
 
     pub fn api_token(&self) -> &str {

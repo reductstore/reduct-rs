@@ -31,7 +31,7 @@ pub struct ReductClientBuilder {
 
 pub type Result<T> = std::result::Result<T, ReductError>;
 
-static API_BASE: &str = "api/v1";
+pub(super) static API_BASE: &str = "api/v1";
 
 impl ReductClientBuilder {
     fn new() -> Self {
