@@ -25,7 +25,7 @@ impl HttpClient {
     }
 
     pub fn url(&self) -> &str {
-        &self.base_url.as_str()[..self.base_url.as_str().len() - 7] // Remove /api/v1
+        &self.base_url.as_str()[..self.base_url.as_str().len() - 6] // Remove /api/v1
     }
 
     pub fn api_token(&self) -> &str {

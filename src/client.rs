@@ -31,7 +31,7 @@ pub struct ReductClientBuilder {
 
 pub type Result<T> = std::result::Result<T, ReductError>;
 
-static API_BASE: &str = "/api/v1";
+static API_BASE: &str = "api/v1";
 
 impl ReductClientBuilder {
     fn new() -> Self {
@@ -87,8 +87,17 @@ impl ReductClientBuilder {
 
     /// Set the URL of the ReductStore instance to connect to.
     pub fn url(mut self, url: &str) -> Self {
-        let url = Url::parse(url).expect("Invalid URL");
-        self.url = format!("{}{}", url.origin().ascii_serialization(), API_BASE);
+        let url = if !url.ends_with('/') {
+            format!("{}/", url)
+        } else {
+            url.to_string()
+        };
+
+        let url = Url::parse(&url).expect("Invalid URL");
+        self.url = url
+            .join(API_BASE)
+            .expect("Failed to join URL with API base path")
+            .to_string();
         self
     }
 
@@ -407,6 +416,20 @@ pub(crate) mod tests {
     use bytes::Bytes;
     use reduct_base::msg::bucket_api::{BucketSettings, QuotaType};
     use rstest::{fixture, rstest};
+
+    mod build {
+        use super::*;
+
+        #[rstest]
+        #[case("http://domain.com:8333", "http://domain.com:8333/")]
+        #[case("http://domain.com:8333/", "http://domain.com:8333/")]
+        #[case("http://domain.com:8333/prefix", "http://domain.com:8333/prefix/")]
+        #[case("http://domain.com:8333/prefix/", "http://domain.com:8333/prefix/")]
+        fn test_build_client(#[case] url: &str, #[case] expected_url: &str) {
+            let client = ReductClient::builder().url(url).build();
+            assert_eq!(client.url(), expected_url);
+        }
+    }
 
     mod serve_api {
         use super::*;
