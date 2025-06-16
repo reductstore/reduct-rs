@@ -39,4 +39,4 @@ tokio = { version = "1.0", default-features = false, features = ["macros"] }
 [dev-dependencies]
 tokio = { version = "1.0", features = ["test-util", "rt-multi-thread"] }
 rstest = "0.25.0"
-test-with = { version = "0.14.1", default-features = false }
+test-with = { version = "0.15.1", default-features = false }
