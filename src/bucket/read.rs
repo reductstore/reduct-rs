@@ -275,7 +275,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg_attr(not(feature = "test-api-115"), ignore)]
     async fn test_query_ext(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let query = bucket
