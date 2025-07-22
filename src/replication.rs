@@ -1,4 +1,4 @@
-// Copyright 2024 ReductStore
+// Copyright 2024-2025 ReductStore
 // This Source Code Form is subject to the terms of the Mozilla Public
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -7,7 +7,6 @@ use crate::client::Result;
 use crate::http_client::HttpClient;
 
 use reduct_base::msg::replication_api::ReplicationSettings;
-use reduct_base::Labels;
 use reqwest::Method;
 use std::sync::Arc;
 
@@ -85,36 +84,6 @@ impl ReplicationBuilder {
     /// * `entries` - Replication entries. If empty, all entries will be replicated. Wildcards are supported.
     pub fn entries(mut self, entries: Vec<String>) -> Self {
         self.settings.entries = entries;
-        self
-    }
-
-    /// Set the replication include.
-    ///
-    /// # Arguments
-    ///
-    /// * `include` - Replication include. If empty, all labels will be replicated.
-    ///
-    #[deprecated(
-        since = "1.14.0",
-        note = "Use the `when` method instead. It will be removed in v1.18.0."
-    )]
-    pub fn include(mut self, include: Labels) -> Self {
-        self.settings.include = include;
-        self
-    }
-
-    /// Set the replication exclude.
-    ///
-    /// # Arguments
-    ///
-    /// * `exclude` - Replication exclude. If empty, no labels will be excluded.
-    ///        If a few labels are specified, records must have none of them to be replicated.
-    #[deprecated(
-        since = "1.14.0",
-        note = "Use the `when` method instead. It will be removed in v1.18.0."
-    )]
-    pub fn exclude(mut self, exclude: Labels) -> Self {
-        self.settings.exclude = exclude;
         self
     }
 

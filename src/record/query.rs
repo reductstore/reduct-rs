@@ -1,4 +1,4 @@
-// Copyright 2023 ReductStore
+// Copyright 2023-2025 ReductStore
 // This Source Code Form is subject to the terms of the Mozilla Public
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -15,7 +15,6 @@ use futures_util::{pin_mut, StreamExt};
 use reduct_base::batch::{parse_batched_header, sort_headers_by_time, RecordHeader};
 use reduct_base::error::ReductError;
 use reduct_base::msg::entry_api::{QueryEntry, QueryInfo, QueryType, RemoveQueryInfo};
-use reduct_base::Labels;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Method;
 use serde_json::Value;
@@ -83,66 +82,6 @@ impl QueryBuilder {
     /// This is a JSON object that will be passed to extensions on the server side.
     pub fn ext(mut self, ext: Value) -> Self {
         self.query.ext = Some(ext);
-        self
-    }
-
-    /// Set the labels to include in the query.
-    #[deprecated(
-        since = "1.13.0",
-        note = "Use the `when` method to set the labels to include in the query."
-    )]
-    pub fn include(mut self, labels: Labels) -> Self {
-        self.query.include = Some(labels);
-        self
-    }
-
-    /// Add a label to include in the query.
-    #[deprecated(
-        since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query."
-    )]
-    pub fn add_include<Str>(mut self, key: Str, value: Str) -> Self
-    where
-        Str: Into<String>,
-    {
-        if let Some(mut labels) = self.query.include {
-            labels.insert(key.into(), value.into());
-            self.query.include = Some(labels);
-        } else {
-            let mut labels = Labels::new();
-            labels.insert(key.into(), value.into());
-            self.query.include = Some(labels);
-        }
-        self
-    }
-
-    /// Set the labels to exclude from the query.
-    #[deprecated(
-        since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
-    )]
-    pub fn exclude(mut self, labels: Labels) -> Self {
-        self.query.exclude = Some(labels);
-        self
-    }
-
-    /// Add a label to exclude from the query.
-    #[deprecated(
-        since = "1.13.0",
-        note = "Use the `when` method to add a label to exclude from the query. It will be remove in v1.16.0."
-    )]
-    pub fn add_exclude<Str>(mut self, key: Str, value: Str) -> Self
-    where
-        Str: Into<String>,
-    {
-        if let Some(mut labels) = self.query.exclude {
-            labels.insert(key.into(), value.into());
-            self.query.exclude = Some(labels);
-        } else {
-            let mut labels = Labels::new();
-            labels.insert(key.into(), value.into());
-            self.query.exclude = Some(labels);
-        }
         self
     }
 
@@ -309,66 +248,6 @@ impl RemoveQueryBuilder {
     /// default: false
     pub fn strict(mut self, strict: bool) -> Self {
         self.query.strict = Some(strict);
-        self
-    }
-
-    /// Set the labels to include in the query.
-    #[deprecated(
-        since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
-    )]
-    pub fn include(mut self, labels: Labels) -> Self {
-        self.query.include = Some(labels);
-        self
-    }
-
-    /// Add a label to include in the query.
-    #[deprecated(
-        since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
-    )]
-    pub fn add_include<Str>(mut self, key: Str, value: Str) -> Self
-    where
-        Str: Into<String>,
-    {
-        if let Some(mut labels) = self.query.include {
-            labels.insert(key.into(), value.into());
-            self.query.include = Some(labels);
-        } else {
-            let mut labels = Labels::new();
-            labels.insert(key.into(), value.into());
-            self.query.include = Some(labels);
-        }
-        self
-    }
-
-    /// Set the labels to exclude from the query.
-    #[deprecated(
-        since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
-    )]
-    pub fn exclude(mut self, labels: Labels) -> Self {
-        self.query.exclude = Some(labels);
-        self
-    }
-
-    /// Add a label to exclude from the query.
-    #[deprecated(
-        since = "1.13.0",
-        note = "Use the `when` method to set the labels to exclude from the query. It will be remove in v1.16.0."
-    )]
-    pub fn add_exclude<Str>(mut self, key: Str, value: Str) -> Self
-    where
-        Str: Into<String>,
-    {
-        if let Some(mut labels) = self.query.exclude {
-            labels.insert(key.into(), value.into());
-            self.query.exclude = Some(labels);
-        } else {
-            let mut labels = Labels::new();
-            labels.insert(key.into(), value.into());
-            self.query.exclude = Some(labels);
-        }
         self
     }
 
