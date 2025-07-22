@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Removed
 
 - Remove legacy code in remove query, [PR-35](https://github.com/reductstore/reduct-rs/pull/35)
+- Deprecated `include\exclude` parameters in `QueryBuilder`, `RemoveQueryBuilder` and `ReplicationSettings`, [PR-41](https://github.com/reductstore/reduct-rs/pull/41)
 
 ## [1.15.2] - 2025-06-11
 
