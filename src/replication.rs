@@ -86,7 +86,7 @@ impl ReplicationBuilder {
         self.settings.entries = entries;
         self
     }
-    
+
     /// Set the replication each_s setting.
     ///
     /// Replicate a record every S seconds if set.

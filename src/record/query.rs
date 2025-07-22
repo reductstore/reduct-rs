@@ -84,7 +84,7 @@ impl QueryBuilder {
         self.query.ext = Some(ext);
         self
     }
-    
+
     /// Set S, to return a record every S seconds.
     /// default: return all records
     #[deprecated(
