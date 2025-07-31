@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.0] - 2025-07-31
+
 ### Breaking Changes
 
 - Drop support for legacy code and ReductStore API versions below 1.13
@@ -138,11 +140,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Part of https://github.com/reductstore/reductstore
 
-[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.15.2...HEAD
+[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.16.0...HEAD
 
-[1.15.0]: https://github.com/reductstore/reduct-rs/compare/v1.15.1...v1.15.2
+[1.16.0]: https://github.com/reductstore/reduct-rs/compare/v1.15.2...v1.16.0
 
-[1.15.0]: https://github.com/reductstore/reduct-rs/compare/v1.15.0...v1.15.1
+[1.15.2]: https://github.com/reductstore/reduct-rs/compare/v1.15.1...v1.15.2
+
+[1.15.1]: https://github.com/reductstore/reduct-rs/compare/v1.15.0...v1.15.1
 
 [1.15.0]: https://github.com/reductstore/reduct-rs/compare/v1.14.0...v1.15.0
 
