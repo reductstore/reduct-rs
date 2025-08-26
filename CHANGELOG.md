@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+
+- Fix error handling for batched records in `QueryBuilder.send()`, [PR-44](https://github.com/reductstore/reduct-rs/pull/44)
+
 ## [1.16.0] - 2025-07-31
 
 ### Breaking Changes
