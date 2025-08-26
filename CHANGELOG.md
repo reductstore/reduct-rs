@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.1] - 2025-08-26
 
 ### Fixed
 
@@ -145,7 +146,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Part of https://github.com/reductstore/reductstore
 
-[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.16.0...HEAD
+[Unreleased]: https://github.com/reductstore/reduct-rs/compare/v1.16.1...HEAD
+
+[1.16.1]: https://github.com/reductstore/reduct-rs/compare/v1.16.0...v1.16.1
 
 [1.16.0]: https://github.com/reductstore/reduct-rs/compare/v1.15.2...v1.16.0
 
