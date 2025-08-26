@@ -3,7 +3,7 @@
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::http_client::HttpClient;
+use crate::http_client::{map_error, HttpClient};
 use crate::record::{from_system_time, Record};
 use crate::RecordStream;
 use async_channel::{unbounded, Receiver};
@@ -13,7 +13,8 @@ use bytes::BytesMut;
 use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
 use reduct_base::batch::{parse_batched_header, sort_headers_by_time, RecordHeader};
-use reduct_base::error::ReductError;
+use reduct_base::error::ErrorCode::Unknown;
+use reduct_base::error::{ErrorCode, IntEnum, ReductError};
 use reduct_base::msg::entry_api::{QueryEntry, QueryInfo, QueryType, RemoveQueryInfo};
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Method;
@@ -172,7 +173,7 @@ impl QueryBuilder {
                 tokio::spawn(async move {
                     let mut stream = response.bytes_stream();
                     while let Some(bytes) = stream.next().await {
-                        if let Err(_) = tx.send(bytes.unwrap()).await {
+                        if let Err(_) = tx.send(bytes).await {
                             break;
                         }
                     }
@@ -297,7 +298,7 @@ impl RemoveQueryBuilder {
 
 async fn parse_batched_records(
     headers: HeaderMap,
-    rx: Receiver<Bytes>,
+    rx: Receiver<Result<Bytes, reqwest::Error>>,
     head_only: bool,
 ) -> Result<impl Stream<Item = Result<(Record, bool), ReductError>>, ReductError> {
     //sort headers by names
@@ -306,13 +307,29 @@ async fn parse_batched_records(
     let records_total = sorted_records.iter().count();
     let mut records_count = 0;
 
+    let unwrap_byte = |bytes: Result<Bytes, reqwest::Error>| match bytes {
+        Ok(b) => Ok(b),
+        Err(err) => {
+            if let Some(status) = err.status() {
+                Err(ReductError::new(
+                    ErrorCode::from_int(status.as_u16() as i16).unwrap_or(Unknown),
+                    &err.to_string(),
+                ))
+            } else {
+                Err(map_error(err))
+            }
+        }
+    };
+
     Ok(stream! {
         let mut rest_data = BytesMut::new();
+
         for (timestamp, value) in sorted_records {
                 let RecordHeader{content_length, content_type, labels} = parse_batched_header(value.to_str().unwrap()).unwrap();
                 let last =  headers.get("x-reduct-last") == Some(&HeaderValue::from_str("true").unwrap());
 
                 records_count += 1;
+
 
                 let data: Option<RecordStream> = if head_only {
                     None
@@ -324,8 +341,9 @@ async fn parse_batched_records(
                     Some(Box::pin(stream! {
                         yield Ok(first_chunk);
                         while let Ok(bytes) = rx.recv().await {
-                            yield Ok(bytes);
+                            yield unwrap_byte(bytes);
                         }
+
                     }))
                 } else {
                     // batched records must be read in order, so it is safe to read them here
@@ -334,8 +352,7 @@ async fn parse_batched_records(
                     // The last batched record is read in the async generator in chunks.
                     let mut data = rest_data.clone();
                     while let Ok(bytes) = rx.recv().await {
-                        data.extend_from_slice(&bytes);
-
+                        data.extend_from_slice(&unwrap_byte(bytes)?);
                         if data.len() >= content_length {
                             break;
                         }
