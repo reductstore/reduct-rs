@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Implement `Bucket.create_query_link` method, [PR-45](https://github.com/reductstore/reduct-rs/pull/45)
+
 ## [1.16.1] - 2025-08-26
 
 ### Fixed
