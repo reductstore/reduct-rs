@@ -353,13 +353,13 @@ async fn parse_batched_records(
                     let mut data = rest_data.clone();
                     while let Ok(bytes) = rx.recv().await {
                         data.extend_from_slice(&unwrap_byte(bytes)?);
-                        if data.len() >= content_length {
+                        if data.len() >= content_length  as usize {
                             break;
                         }
                     }
 
-                    rest_data = data.split_off(content_length);
-                    data.truncate(content_length);
+                    rest_data = data.split_off(content_length as usize);
+                    data.truncate(content_length as usize);
 
                     Some(Box::pin(stream! {
                         yield Ok(data.into());

@@ -44,7 +44,7 @@ pub struct Record {
     timestamp: u64,
     labels: Labels,
     content_type: String,
-    content_length: usize,
+    content_length: u64,
     data: Option<RecordStream>,
 }
 
@@ -79,7 +79,7 @@ impl Record {
 
     /// Content length of the record
     pub fn content_length(&self) -> usize {
-        self.content_length
+        self.content_length as usize
     }
 
     /// Content of the record
@@ -170,7 +170,7 @@ impl RecordBuilder {
     ///
     /// Note: use this with stream data
     pub fn content_length(mut self, content_length: usize) -> Self {
-        self.record.content_length = content_length;
+        self.record.content_length = content_length as u64;
         self
     }
 
@@ -182,7 +182,7 @@ impl RecordBuilder {
         D: Into<Bytes>,
     {
         let bytes = data.into();
-        self.record.content_length = bytes.len();
+        self.record.content_length = bytes.len() as u64;
         self.record.data = Some(Box::pin(futures::stream::once(async move { Ok(bytes) })));
         self
     }
