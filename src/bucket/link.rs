@@ -14,6 +14,7 @@ use std::sync::Arc;
 
 pub struct CreateQueryLinkBuilder {
     request: QueryLinkCreateRequest,
+    file_name: Option<String>,
     http_client: Arc<HttpClient>,
 }
 
@@ -26,6 +27,7 @@ impl CreateQueryLinkBuilder {
                 expire_at: Utc::now() + chrono::Duration::hours(24),
                 ..Default::default()
             },
+            file_name: None,
             http_client,
         }
     }
@@ -48,11 +50,26 @@ impl CreateQueryLinkBuilder {
         self
     }
 
+    /// Set the file name for the query link.
+    pub fn file_name(mut self, file_name: &str) -> Self {
+        self.file_name = Some(file_name.to_string());
+        self
+    }
+
     /// Send the create query link request.
     pub async fn send(self) -> Result<String, ReductError> {
+        let file_name = self.file_name.unwrap_or(format!(
+            "{}_{}.bin",
+            self.request.entry,
+            self.request.index.unwrap_or(0)
+        ));
         let response: QueryLinkCreateResponse = self
             .http_client
-            .send_and_receive_json(Method::POST, "/links", Some(self.request))
+            .send_and_receive_json(
+                Method::POST,
+                &format!("/links/{}", file_name),
+                Some(self.request),
+            )
             .await?;
         Ok(response.link)
     }
@@ -146,5 +163,19 @@ mod tests {
             .unwrap();
         let response = reqwest::get(&link).await.unwrap();
         assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    #[cfg(feature = "test-api-117")]
+    #[rstest]
+    #[tokio::test]
+    async fn test_link_creation_file_name(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let link = bucket
+            .create_query_link("entry-1")
+            .file_name("my-link.bin")
+            .send()
+            .await
+            .unwrap();
+        assert!(link.contains("links/my-link.bin?"));
     }
 }
