@@ -26,7 +26,7 @@ impl ReplicationBuilder {
                 src_bucket: "".to_string(),
                 dst_bucket: "".to_string(),
                 dst_host: "".to_string(),
-                dst_token: None,
+                dst_token: Some("".to_string()), // for compatibility with v1.16.0 and earlier
                 entries: vec![],
                 include: Default::default(),
                 exclude: Default::default(),
