@@ -585,7 +585,7 @@ pub(crate) mod tests {
                 .src_bucket(settings.src_bucket.as_str())
                 .dst_bucket(settings.dst_bucket.as_str())
                 .dst_host(settings.dst_host.as_str())
-                .dst_token(settings.dst_token.as_str())
+                .dst_token(settings.dst_token.unwrap_or_default().as_str())
                 .entries(settings.entries.clone())
                 .each_s(settings.each_s.unwrap())
                 .each_n(settings.each_n.unwrap())
@@ -623,7 +623,7 @@ pub(crate) mod tests {
             assert_eq!(
                 replication.settings,
                 ReplicationSettings {
-                    dst_token: "***".to_string(),
+                    dst_token: None,
                     ..settings
                 }
             );
@@ -649,7 +649,7 @@ pub(crate) mod tests {
             assert_eq!(
                 replication.settings,
                 ReplicationSettings {
-                    dst_token: "***".to_string(),
+                    dst_token: None,
                     ..settings
                 }
             );
@@ -679,7 +679,7 @@ pub(crate) mod tests {
                 src_bucket: "test-bucket-1".to_string(),
                 dst_bucket: "test-bucket-2".to_string(),
                 dst_host: "http://127.0.0.1:8383".to_string(),
-                dst_token: std::env::var("RS_API_TOKEN").unwrap_or("".to_string()),
+                dst_token: std::env::var("RS_API_TOKEN").ok(),
                 entries: vec![],
                 include: Labels::default(),
                 exclude: Labels::default(),

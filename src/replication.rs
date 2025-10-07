@@ -26,7 +26,7 @@ impl ReplicationBuilder {
                 src_bucket: "".to_string(),
                 dst_bucket: "".to_string(),
                 dst_host: "".to_string(),
-                dst_token: "".to_string(),
+                dst_token: None,
                 entries: vec![],
                 include: Default::default(),
                 exclude: Default::default(),
@@ -74,7 +74,7 @@ impl ReplicationBuilder {
     ///
     /// * `token` - Destination token.
     pub fn dst_token(mut self, token: &str) -> Self {
-        self.settings.dst_token = token.to_string();
+        self.settings.dst_token = Some(token.to_string());
         self
     }
 
