@@ -597,6 +597,7 @@ pub(crate) mod tests {
             assert_eq!(replications.len(), 1);
         }
 
+        #[cfg(feature = "test-api-117")]
         #[rstest]
         #[tokio::test]
         async fn test_get_replication(
@@ -631,6 +632,7 @@ pub(crate) mod tests {
             assert_eq!(replication.diagnostics, Diagnostics::default());
         }
 
+        #[cfg(feature = "test-api-117")]
         #[rstest]
         #[tokio::test]
         async fn test_update_replication(
