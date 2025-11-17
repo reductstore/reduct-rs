@@ -16,7 +16,6 @@ pub struct CreateQueryLinkBuilder {
     request: QueryLinkCreateRequest,
     file_name: Option<String>,
     http_client: Arc<HttpClient>,
-    base_url: Option<String>,
 }
 
 impl CreateQueryLinkBuilder {
@@ -29,7 +28,6 @@ impl CreateQueryLinkBuilder {
                 ..Default::default()
             },
             file_name: None,
-            base_url: None,
             http_client,
         }
     }
