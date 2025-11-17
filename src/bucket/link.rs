@@ -16,6 +16,7 @@ pub struct CreateQueryLinkBuilder {
     request: QueryLinkCreateRequest,
     file_name: Option<String>,
     http_client: Arc<HttpClient>,
+    base_url: Option<String>,
 }
 
 impl CreateQueryLinkBuilder {
@@ -28,6 +29,7 @@ impl CreateQueryLinkBuilder {
                 ..Default::default()
             },
             file_name: None,
+            base_url: None,
             http_client,
         }
     }
@@ -53,6 +55,12 @@ impl CreateQueryLinkBuilder {
     /// Set the file name for the query link.
     pub fn file_name(mut self, file_name: &str) -> Self {
         self.file_name = Some(file_name.to_string());
+        self
+    }
+
+    /// Set the base URL for the query link.
+    pub fn base_url(mut self, base_url: &str) -> Self {
+        self.request.base_url = Some(base_url.to_string());
         self
     }
 
