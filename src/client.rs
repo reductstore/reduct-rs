@@ -64,6 +64,7 @@ impl ReductClientBuilder {
         ReductError::new(ErrorCode::UrlParseError, "URL must be set");
         let builder = reqwest::ClientBuilder::new()
             .timeout(self.timeout)
+            .cookie_store(true)
             .danger_accept_invalid_certs(!self.verify_ssl);
         let builder = if self.http1_only {
             builder.http1_only()
