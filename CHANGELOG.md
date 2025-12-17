@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 1.17.2 - 2025-12-17
+
 ### Fixed
 
 - Enable cookies for load balancing, [PR-52](https://github.com/reductstore/reduct-rs/pull/52)
