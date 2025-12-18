@@ -14,7 +14,8 @@ use crate::Bucket;
 use reduct_base::error::{ErrorCode, ReductError};
 
 use reduct_base::msg::replication_api::{
-    FullReplicationInfo, ReplicationInfo, ReplicationList, ReplicationSettings,
+    FullReplicationInfo, ReplicationInfo, ReplicationList, ReplicationMode, ReplicationModePayload,
+    ReplicationSettings,
 };
 
 use crate::replication::ReplicationBuilder;
@@ -392,6 +393,22 @@ impl ReductClient {
             .await
     }
 
+    /// Update replication mode without changing other settings.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the replication
+    /// * `mode` - New replication mode
+    pub async fn set_replication_mode(&self, name: &str, mode: ReplicationMode) -> Result<()> {
+        self.http_client
+            .send_json(
+                Method::PATCH,
+                &format!("/replications/{}/mode", name),
+                ReplicationModePayload { mode },
+            )
+            .await
+    }
+
     /// Delete a replication
     ///
     /// # Arguments
@@ -565,7 +582,7 @@ pub(crate) mod tests {
         use super::*;
         use crate::condition;
         use reduct_base::msg::diagnostics::Diagnostics;
-        use reduct_base::msg::replication_api::ReplicationSettings;
+        use reduct_base::msg::replication_api::{ReplicationMode, ReplicationSettings};
 
         #[rstest]
         #[tokio::test]
@@ -617,6 +634,7 @@ pub(crate) mod tests {
                 replication.info,
                 ReplicationInfo {
                     name: "test-replication".to_string(),
+                    mode: ReplicationMode::Enabled,
                     is_active: true,
                     is_provisioned: false,
                     pending_records: 0,
@@ -658,6 +676,31 @@ pub(crate) mod tests {
             );
         }
 
+        #[cfg(feature = "test-api-117")]
+        #[rstest]
+        #[tokio::test]
+        async fn test_set_replication_mode(
+            #[future] client: ReductClient,
+            settings: ReplicationSettings,
+        ) {
+            let client = client.await;
+            client
+                .create_replication("test-replication")
+                .set_settings(settings.clone())
+                .send()
+                .await
+                .unwrap();
+
+            client
+                .set_replication_mode("test-replication", ReplicationMode::Paused)
+                .await
+                .unwrap();
+
+            let replication = client.get_replication("test-replication").await.unwrap();
+            assert_eq!(replication.info.mode, ReplicationMode::Paused);
+            assert_eq!(replication.settings.mode, ReplicationMode::Paused);
+        }
+
         #[rstest]
         #[tokio::test]
         async fn test_delete_replication(
@@ -689,6 +732,7 @@ pub(crate) mod tests {
                 each_s: Some(1.0),
                 each_n: Some(1),
                 when: Some(condition!({"$eq": ["&label", 1]})),
+                mode: ReplicationMode::Enabled,
             }
         }
     }

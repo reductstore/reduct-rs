@@ -6,7 +6,7 @@
 use crate::client::Result;
 use crate::http_client::HttpClient;
 
-use reduct_base::msg::replication_api::ReplicationSettings;
+use reduct_base::msg::replication_api::{ReplicationMode, ReplicationSettings};
 use reqwest::Method;
 use std::sync::Arc;
 
@@ -20,20 +20,12 @@ pub struct ReplicationBuilder {
 impl ReplicationBuilder {
     /// Create a new replication builder.
     pub(super) fn new(name: String, http_client: Arc<HttpClient>) -> Self {
+        let mut settings = ReplicationSettings::default();
+        // Keep compatibility with older ReductStore versions that expect an empty token field.
+        settings.dst_token = Some("".to_string());
         Self {
             name,
-            settings: ReplicationSettings {
-                src_bucket: "".to_string(),
-                dst_bucket: "".to_string(),
-                dst_host: "".to_string(),
-                dst_token: Some("".to_string()), // for compatibility with v1.16.0 and earlier
-                entries: vec![],
-                include: Default::default(),
-                exclude: Default::default(),
-                each_s: None,
-                each_n: None,
-                when: None,
-            },
+            settings,
             http_client,
         }
     }
@@ -126,6 +118,14 @@ impl ReplicationBuilder {
     /// * `when` - Conditional query.
     pub fn when(mut self, when: serde_json::Value) -> Self {
         self.settings.when = Some(when);
+        self
+    }
+
+    /// Set replication mode.
+    ///
+    /// * `mode` - Enabled, Paused, or Disabled.
+    pub fn mode(mut self, mode: ReplicationMode) -> Self {
+        self.settings.mode = mode;
         self
     }
 

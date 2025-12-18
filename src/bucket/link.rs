@@ -107,7 +107,6 @@ mod tests {
     use reduct_base::msg::entry_api::QueryEntry;
     use rstest::rstest;
 
-    #[cfg(feature = "test-api-117")]
     #[rstest]
     #[tokio::test]
     async fn test_link_creation(#[future] bucket: Bucket) {
@@ -123,7 +122,6 @@ mod tests {
         assert_eq!(body, "Hey entry-1!");
     }
 
-    #[cfg(feature = "test-api-117")]
     #[rstest]
     #[tokio::test]
     async fn test_link_creation_with_query(#[future] bucket: Bucket) {
@@ -141,7 +139,6 @@ mod tests {
         assert_eq!(body, "Hey entry-1!");
     }
 
-    #[cfg(feature = "test-api-117")]
     #[rstest]
     #[tokio::test]
     async fn test_link_creation_with_index(#[future] bucket: Bucket) {
@@ -156,7 +153,6 @@ mod tests {
         assert_eq!(body, r#"{"detail": "Record number out of range"}"#)
     }
 
-    #[cfg(feature = "test-api-117")]
     #[rstest]
     #[tokio::test]
     async fn test_link_creation_expired(#[future] bucket: Bucket) {
@@ -171,7 +167,6 @@ mod tests {
         assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
     }
 
-    #[cfg(feature = "test-api-117")]
     #[rstest]
     #[tokio::test]
     async fn test_link_creation_file_name(#[future] bucket: Bucket) {

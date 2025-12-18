@@ -16,14 +16,14 @@ categories = ["database"]
 
 [features]
 default = []
-test-api-117 = []   # Test API 1.16
+test-api-118 = []
 
 
 [lib]
 crate-type = ["lib"]
 
 [dependencies]
-reduct-base = "1.17.3"
+reduct-base = { version = "1.18.0", git = "https://github.com/reductstore/reductstore.git"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "cookies"] }
