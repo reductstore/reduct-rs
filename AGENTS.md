@@ -27,6 +27,11 @@
 - Document any new env vars or server flags needed for your tests in the PR body.
 - **Always test with both `reduct/store:latest` and `reduct/store:main` Docker tags** to ensure compatibility with stable and development versions of ReductStore.
 
+## SDK Features & API Compatibility
+- **ResourceStatus enum**: Exported from `reduct_base::msg::status::ResourceStatus` for non-blocking deletion support (API v1.18+). Buckets and entries expose status field (`READY` or `DELETING`). While `DELETING`, operations return HTTP 409 until cleanup completes.
+- **Backward compatibility**: SDK automatically deserializes status from API responses; defaults to `READY` for older server versions.
+- Don't create examples or update README for minor features unless explicitly requested in an issue.
+
 ## Commit & Pull Request Guidelines
 - Commit messages are short and imperative; include scope or issue/PR numbers when helpful (e.g., `Add base_url to Bucket.create_query_link (#51)`), and use `release vX.Y.Z` for tagged releases.
 - PRs should describe the change, API versions or features touched, and list the commands you ran (fmt/check/tests/examples).
