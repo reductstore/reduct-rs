@@ -293,6 +293,22 @@ mod tests {
         assert!(bucket.info().await.is_ok());
     }
 
+    #[rstest]
+    #[tokio::test]
+    async fn test_bucket_status(#[future] bucket: Bucket) {
+        use reduct_base::msg::status::ResourceStatus;
+        let bucket = bucket.await;
+        let info = bucket.info().await.unwrap();
+        // Active bucket should have READY status
+        assert_eq!(info.status, ResourceStatus::Ready);
+
+        // Check entries also have status
+        let entries = bucket.entries().await.unwrap();
+        for entry in entries {
+            assert_eq!(entry.status, ResourceStatus::Ready);
+        }
+    }
+
     #[fixture]
     pub async fn bucket(#[future] client: ReductClient) -> Bucket {
         client.await.get_bucket("test-bucket-1").await.unwrap()
