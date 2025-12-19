@@ -12,7 +12,6 @@ database for unstructured data.
 * Supports the [ReductStore HTTP API v1.18](https://www.reduct.store/docs/http-api)
 * Built on top of [reqwest](https://github.com/seanmonstar/reqwest)
 * Asynchronous API
-* Support for non-blocking deletions with resource status tracking (READY/DELETING)
 
 ## Example
 
@@ -84,36 +83,6 @@ async fn main() -> Result<(), ReductError> {
 
 For more examples, see the [Guides](https://reduct.store/docs/guides) section in the ReductStore documentation.
 
-## Non-Blocking Deletions
-
-Starting with ReductStore API v1.18, bucket and entry deletions are non-blocking. Resources expose a status field that can be either `READY` or `DELETING`:
-
-* **READY**: The resource is available for normal operations
-* **DELETING**: The resource is being deleted in the background
-
-While a resource is in the `DELETING` state, any read/write/delete operations will return HTTP 409 (Conflict) until the cleanup process finishes. You can check the status using `bucket.info()` or `bucket.entries()`:
-
-```rust
-use reduct_rs::{ResourceStatus, ReductClient};
-
-let client = ReductClient::builder().url("http://127.0.0.1:8383").build();
-let bucket = client.get_bucket("my-bucket").await?;
-
-// Check bucket status
-let info = bucket.info().await?;
-if info.status == ResourceStatus::Deleting {
-    println!("Bucket is being deleted");
-}
-
-// Check entry status
-for entry in bucket.entries().await? {
-    if entry.status == ResourceStatus::Deleting {
-        println!("Entry {} is being deleted", entry.name);
-    }
-}
-```
-
-For a complete example, see [examples/bucket_status.rs](examples/bucket_status.rs).
 
 ## Supported ReductStore Versions and  Backward Compatibility
 

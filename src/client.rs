@@ -761,11 +761,14 @@ pub(crate) mod tests {
         }
 
         for bucket in client.bucket_list().await.unwrap().buckets {
-            if bucket.name.starts_with("test-bucket") {
+            if bucket.name.starts_with("test-bucket") || bucket.name == "new-bucket" {
                 let bucket = client.get_bucket(&bucket.name).await.unwrap();
                 bucket.remove().await.unwrap();
             }
         }
+
+        // Wait for any non-blocking deletions to complete
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         for replication in client.list_replications().await.unwrap() {
             if replication.name.starts_with("test-replication") {

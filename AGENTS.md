@@ -25,6 +25,7 @@
 - Some replication/license checks are gated by `test-with` and only run if `misc/lic.key` exists; keep them optional but working.
 - Tests assume a clean server state and remove `test-*` resources; follow that pattern for new setups to avoid cross-test pollution.
 - Document any new env vars or server flags needed for your tests in the PR body.
+- **Always test with both `reduct/store:latest` and `reduct/store:main` Docker tags** to ensure compatibility with stable and development versions of ReductStore.
 
 ## Commit & Pull Request Guidelines
 - Commit messages are short and imperative; include scope or issue/PR numbers when helpful (e.g., `Add base_url to Bucket.create_query_link (#51)`), and use `release vX.Y.Z` for tagged releases.
