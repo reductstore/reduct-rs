@@ -132,15 +132,12 @@ mod tests {
     async fn remove_entry(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         bucket.remove_entry("entry-1").await.unwrap();
-        assert_eq!(
-            bucket
-                .read_record("entry-1")
-                .send()
-                .await
-                .err()
-                .unwrap()
-                .status,
-            ErrorCode::NotFound
+        let error = bucket.read_record("entry-1").send().await.err().unwrap();
+        // After deletion, entry may be DELETING (Conflict) or gone (NotFound)
+        assert!(
+            error.status == ErrorCode::NotFound || error.status == ErrorCode::Conflict,
+            "Expected NotFound or Conflict, got {:?}",
+            error.status
         );
     }
 

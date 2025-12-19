@@ -27,6 +27,7 @@ pub use reduct_base::msg::replication_api::{
     ReplicationSettings,
 };
 pub use reduct_base::msg::server_api::{BucketInfoList, Defaults, ServerInfo};
+pub use reduct_base::msg::status::ResourceStatus;
 pub use reduct_base::msg::token_api::{Permissions, Token};
 pub use serde_json::json as condition;
 pub use serde_json::json as ext; // for readability
