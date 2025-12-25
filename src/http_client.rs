@@ -4,7 +4,7 @@
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::client::{Result, API_BASE};
-use reduct_base::error::{ErrorCode, IntEnum, ReductError};
+use reduct_base::error::{ErrorCode, ReductError};
 use reqwest::header::HeaderValue;
 use reqwest::{Method, RequestBuilder, Response, Url};
 
@@ -107,7 +107,7 @@ impl HttpClient {
 
                     Ok(response)
                 } else {
-                    let status = ErrorCode::from_int(response.status().as_u16() as i16)
+                    let status = ErrorCode::try_from(response.status().as_u16() as i16)
                         .unwrap_or(ErrorCode::Unknown);
                     let error_msg = response
                         .headers()

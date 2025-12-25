@@ -11,7 +11,7 @@ use reqwest::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
 use reqwest::{Body, Method};
 use std::collections::{BTreeMap, VecDeque};
 
-use reduct_base::error::{ErrorCode, IntEnum, ReductError};
+use reduct_base::error::{ErrorCode, ReductError};
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -339,7 +339,7 @@ impl WriteBatchBuilder {
                 failed_records.insert(
                     record_ts,
                     ReductError::new(
-                        ErrorCode::from_int(status.parse().unwrap()).unwrap(),
+                        ErrorCode::try_from(status.parse::<i16>().unwrap()).unwrap(),
                         message,
                     ),
                 );
