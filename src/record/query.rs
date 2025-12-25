@@ -14,7 +14,7 @@ use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
 use reduct_base::batch::{parse_batched_header, sort_headers_by_time, RecordHeader};
 use reduct_base::error::ErrorCode::Unknown;
-use reduct_base::error::{ErrorCode, IntEnum, ReductError};
+use reduct_base::error::{ErrorCode, ReductError};
 use reduct_base::msg::entry_api::{QueryEntry, QueryInfo, QueryType, RemoveQueryInfo};
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Method;
@@ -312,7 +312,7 @@ async fn parse_batched_records(
         Err(err) => {
             if let Some(status) = err.status() {
                 Err(ReductError::new(
-                    ErrorCode::from_int(status.as_u16() as i16).unwrap_or(Unknown),
+                    ErrorCode::try_from(status.as_u16() as i16).unwrap_or(Unknown),
                     &err.to_string(),
                 ))
             } else {
