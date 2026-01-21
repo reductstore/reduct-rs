@@ -182,12 +182,10 @@ impl WriteRecordBatchBuilder {
                     HeaderValue::from_static("application/octet-stream"),
                 )
                 .header(CONTENT_LENGTH, HeaderValue::from_static("0")),
-            WriteBatchType::Remove => {
-                return Err(ReductError::new(
-                    ErrorCode::InvalidRequest,
-                    "Multi-entry batch remove is not supported",
-                ));
-            }
+            WriteBatchType::Remove => self
+                .client
+                .request(Method::DELETE, &format!("/io/{}/remove", self.bucket))
+                .header(CONTENT_LENGTH, HeaderValue::from_static("0")),
         };
 
         request = request
@@ -208,10 +206,12 @@ impl WriteRecordBatchBuilder {
                 WriteBatchType::Update => make_update_header_value(record),
                 WriteBatchType::Remove => String::new(),
             };
-            request = request.header(
-                make_batched_header_name(idx, delta),
-                HeaderValue::from_str(&value).unwrap(),
-            );
+            let header_value = if value.is_empty() {
+                HeaderValue::from_static("")
+            } else {
+                HeaderValue::from_str(&value).unwrap()
+            };
+            request = request.header(make_batched_header_name(idx, delta), header_value);
         }
 
         let response = match self.batch_type {
@@ -230,8 +230,9 @@ impl WriteRecordBatchBuilder {
                     .send_request(request.body(Body::wrap_stream(stream)))
                     .await?
             }
-            WriteBatchType::Update => self.client.send_request(request).await?,
-            WriteBatchType::Remove => unreachable!(),
+            WriteBatchType::Update | WriteBatchType::Remove => {
+                self.client.send_request(request).await?
+            }
         };
 
         let mut failed_records = FailedRecordMap::new();

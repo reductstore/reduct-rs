@@ -5,7 +5,7 @@
 
 use crate::record::query::RemoveQueryBuilder;
 use crate::record::write_batched_records_v1::WriteBatchType;
-use crate::{Bucket, RemoveRecordBuilder, WriteBatchBuilder};
+use crate::{Bucket, RemoveRecordBuilder, WriteBatchBuilder, WriteRecordBatchBuilder};
 use http::Method;
 use reduct_base::error::ReductError;
 
@@ -81,6 +81,21 @@ impl Bucket {
         )
     }
 
+    /// Remove records across multiple entries in the bucket.
+    ///
+    /// You should specify entry names in each record when using this method.
+    ///
+    /// # Returns
+    ///
+    /// Returns a batch builder.
+    pub fn remove_record_batch(&self) -> WriteRecordBatchBuilder {
+        WriteRecordBatchBuilder::new(
+            self.name.clone(),
+            self.http_client.clone(),
+            WriteBatchType::Remove,
+        )
+    }
+
     /// Remove records in a query.
     ///
     /// # Arguments
@@ -123,6 +138,7 @@ impl Bucket {
 mod tests {
     use super::*;
     use crate::bucket::tests::bucket;
+    use bytes::Bytes;
     use reduct_base::error::ErrorCode;
     use rstest::rstest;
     use serde_json::json;
@@ -194,6 +210,107 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    async fn remove_batch_multi_entry(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        bucket
+            .write_record("entry-3")
+            .timestamp_us(1000)
+            .data(Bytes::from("A"))
+            .send()
+            .await
+            .unwrap();
+        bucket
+            .write_record("entry-4")
+            .timestamp_us(1000)
+            .data(Bytes::from("B"))
+            .send()
+            .await
+            .unwrap();
+
+        let batch = bucket.remove_record_batch();
+        let errors = batch
+            .add_record(
+                crate::RecordBuilder::new()
+                    .entry("entry-3")
+                    .timestamp_us(1000)
+                    .build(),
+            )
+            .add_record(
+                crate::RecordBuilder::new()
+                    .entry("entry-4")
+                    .timestamp_us(1000)
+                    .build(),
+            )
+            .send()
+            .await
+            .unwrap();
+
+        assert!(errors.is_empty());
+        for entry in ["entry-3", "entry-4"] {
+            assert_eq!(
+                bucket
+                    .read_record(entry)
+                    .timestamp_us(1000)
+                    .send()
+                    .await
+                    .err()
+                    .unwrap()
+                    .status,
+                ErrorCode::NotFound
+            );
+        }
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn remove_batch_multi_entry_with_error(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        bucket
+            .write_record("entry-3")
+            .timestamp_us(1000)
+            .data(Bytes::from("A"))
+            .send()
+            .await
+            .unwrap();
+
+        let batch = bucket.remove_record_batch();
+        let errors = batch
+            .add_record(
+                crate::RecordBuilder::new()
+                    .entry("entry-3")
+                    .timestamp_us(1000)
+                    .build(),
+            )
+            .add_record(
+                crate::RecordBuilder::new()
+                    .entry("entry-4")
+                    .timestamp_us(2000)
+                    .build(),
+            )
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(
+            errors.get(&(String::from("entry-4"), 2000)).unwrap().status,
+            ErrorCode::NotFound
+        );
+        assert_eq!(
+            bucket
+                .read_record("entry-3")
+                .timestamp_us(1000)
+                .send()
+                .await
+                .err()
+                .unwrap()
+                .status,
+            ErrorCode::NotFound
+        );
+    }
+
+    #[rstest]
+    #[tokio::test]
     async fn remove_query(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
 
@@ -228,14 +345,9 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(removed_records, 4);
+        assert_eq!(removed_records, 3);
 
-        for (entry, timestamp) in [
-            ("entry-1", 1000),
-            ("entry-2", 2000),
-            ("entry-2", 3000),
-            ("entry-2", 4000),
-        ] {
+        for (entry, timestamp) in [("entry-1", 1000), ("entry-2", 2000), ("entry-2", 3000)] {
             assert_eq!(
                 bucket
                     .read_record(entry)
