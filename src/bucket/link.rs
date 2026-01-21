@@ -166,7 +166,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg(feature = "api_v1_18")]
+    #[cfg(feature = "test-api-118")]
     async fn test_link_creation_multi_entry(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let link = bucket
