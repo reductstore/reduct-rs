@@ -101,7 +101,11 @@ impl Bucket {
     /// }
     ///
     pub fn write_record_batch(&self) -> WriteRecordBatchBuilder {
-        WriteRecordBatchBuilder::new(self.name.clone(), Arc::clone(&self.http_client))
+        WriteRecordBatchBuilder::new(
+            self.name.clone(),
+            Arc::clone(&self.http_client),
+            WriteBatchType::Write,
+        )
     }
 }
 

@@ -5,7 +5,7 @@
 
 use crate::record::update_record::UpdateRecordBuilder;
 use crate::record::write_batched_records_v1::WriteBatchType;
-use crate::{Bucket, WriteBatchBuilder};
+use crate::{Bucket, WriteBatchBuilder, WriteRecordBatchBuilder};
 use std::sync::Arc;
 
 impl Bucket {
@@ -66,6 +66,21 @@ impl Bucket {
         WriteBatchBuilder::new(
             self.name.clone(),
             entry.to_string(),
+            Arc::clone(&self.http_client),
+            WriteBatchType::Update,
+        )
+    }
+
+    /// Create a batch to update records across multiple entries in the bucket.
+    ///
+    /// You should specify entry names in each record when using this method.
+    ///
+    /// # Returns
+    ///
+    /// Returns a batch builder.
+    pub fn update_record_batch(&self) -> WriteRecordBatchBuilder {
+        WriteRecordBatchBuilder::new(
+            self.name.clone(),
             Arc::clone(&self.http_client),
             WriteBatchType::Update,
         )
@@ -157,5 +172,115 @@ mod tests {
 
         assert_eq!(record.labels().get("test"), Some(&"2".to_string()));
         assert_eq!(record.labels().get("x"), None);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_update_record_batched_multi_entry(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        bucket
+            .write_record("entry-3")
+            .timestamp_us(1000)
+            .data(Bytes::from("A"))
+            .add_label("test", "1")
+            .add_label("x", "y")
+            .send()
+            .await
+            .unwrap();
+
+        bucket
+            .write_record("entry-4")
+            .timestamp_us(1000)
+            .data(Bytes::from("B"))
+            .add_label("test", "1")
+            .add_label("x", "y")
+            .send()
+            .await
+            .unwrap();
+
+        let batch = bucket.update_record_batch();
+        let record1 = RecordBuilder::new()
+            .entry("entry-3")
+            .timestamp_us(1000)
+            .add_label("test".to_string(), "2".to_string())
+            .add_label("x".to_string(), "".to_string())
+            .build();
+        let record2 = RecordBuilder::new()
+            .entry("entry-4")
+            .timestamp_us(1000)
+            .add_label("test".to_string(), "3".to_string())
+            .build();
+
+        let error_map = batch
+            .add_record(record1)
+            .add_record(record2)
+            .send()
+            .await
+            .unwrap();
+
+        assert!(error_map.is_empty());
+
+        let record = bucket
+            .read_record("entry-3")
+            .timestamp_us(1000)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(record.labels().get("test"), Some(&"2".to_string()));
+        assert_eq!(record.labels().get("x"), None);
+
+        let record = bucket
+            .read_record("entry-4")
+            .timestamp_us(1000)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(record.labels().get("test"), Some(&"3".to_string()));
+        assert_eq!(record.labels().get("x"), Some(&"y".to_string()));
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_update_record_batched_multi_entry_with_error(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        bucket
+            .write_record("entry-3")
+            .timestamp_us(1000)
+            .data(Bytes::from("A"))
+            .add_label("test", "1")
+            .send()
+            .await
+            .unwrap();
+
+        let batch = bucket.update_record_batch();
+        let record1 = RecordBuilder::new()
+            .entry("entry-3")
+            .timestamp_us(1000)
+            .add_label("test".to_string(), "2".to_string())
+            .build();
+        let record2 = RecordBuilder::new()
+            .entry("entry-4")
+            .timestamp_us(1000)
+            .add_label("test".to_string(), "3".to_string())
+            .build();
+
+        let error_map = batch
+            .add_record(record1)
+            .add_record(record2)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(error_map.len(), 1);
+        let error = error_map.get(&(String::from("entry-4"), 1000)).unwrap();
+        assert_eq!(error.status, ErrorCode::NotFound);
+
+        let record = bucket
+            .read_record("entry-3")
+            .timestamp_us(1000)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(record.labels().get("test"), Some(&"2".to_string()));
     }
 }

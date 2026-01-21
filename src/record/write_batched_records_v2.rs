@@ -4,6 +4,7 @@
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::http_client::HttpClient;
+use crate::record::write_batched_records_v1::WriteBatchType;
 use crate::Record;
 use async_stream::stream;
 use futures_util::StreamExt;
@@ -18,6 +19,7 @@ use std::time::SystemTime;
 /// Builder for writing multiple records across entries in a single request.
 pub struct WriteRecordBatchBuilder {
     bucket: String,
+    batch_type: WriteBatchType,
     records: VecDeque<Record>,
     client: Arc<HttpClient>,
     last_access: SystemTime,
@@ -26,9 +28,10 @@ pub struct WriteRecordBatchBuilder {
 type FailedRecordMap = BTreeMap<(String, u64), ReductError>;
 
 impl WriteRecordBatchBuilder {
-    pub(crate) fn new(bucket: String, client: Arc<HttpClient>) -> Self {
+    pub(crate) fn new(bucket: String, client: Arc<HttpClient>, batch_type: WriteBatchType) -> Self {
         Self {
             bucket,
+            batch_type,
             records: VecDeque::new(),
             client,
             last_access: SystemTime::now(),
@@ -98,10 +101,18 @@ impl WriteRecordBatchBuilder {
     pub async fn send(mut self) -> Result<FailedRecordMap, ReductError> {
         if let Some(version) = self.client.get_api_version().await {
             if version.1 < 18 {
-                return Err(ReductError::new(
-                    ErrorCode::InvalidRequest,
-                    "Multi-entry batch writes are not supported in API versions below v1.18",
-                ));
+                let message = match self.batch_type {
+                    WriteBatchType::Write => {
+                        "Multi-entry batch writes are not supported in API versions below v1.18"
+                    }
+                    WriteBatchType::Update => {
+                        "Multi-entry batch updates are not supported in API versions below v1.18"
+                    }
+                    WriteBatchType::Remove => {
+                        "Multi-entry batch remove is not supported in API versions below v1.18"
+                    }
+                };
+                return Err(ReductError::new(ErrorCode::InvalidRequest, message));
             }
         }
 
@@ -118,7 +129,7 @@ impl WriteRecordBatchBuilder {
             if record.entry().is_empty() {
                 return Err(ReductError::new(
                     ErrorCode::InvalidRequest,
-                    "Record entry name is required for multi-entry batch writes",
+                    "Record entry name is required for multi-entry batch operations",
                 ));
             }
 
@@ -144,19 +155,42 @@ impl WriteRecordBatchBuilder {
                 .then_with(|| left.timestamp_us().cmp(&right.timestamp_us()))
         });
 
-        let content_length: usize = records.iter().map(|r| r.content_length()).sum();
+        let mut request = match self.batch_type {
+            WriteBatchType::Write => self
+                .client
+                .request(Method::POST, &format!("/io/{}/write", self.bucket))
+                .header(
+                    CONTENT_TYPE,
+                    HeaderValue::from_static("application/octet-stream"),
+                )
+                .header(
+                    CONTENT_LENGTH,
+                    HeaderValue::from_str(
+                        &records
+                            .iter()
+                            .map(|r| r.content_length())
+                            .sum::<usize>()
+                            .to_string(),
+                    )
+                    .unwrap(),
+                ),
+            WriteBatchType::Update => self
+                .client
+                .request(Method::PATCH, &format!("/io/{}/update", self.bucket))
+                .header(
+                    CONTENT_TYPE,
+                    HeaderValue::from_static("application/octet-stream"),
+                )
+                .header(CONTENT_LENGTH, HeaderValue::from_static("0")),
+            WriteBatchType::Remove => {
+                return Err(ReductError::new(
+                    ErrorCode::InvalidRequest,
+                    "Multi-entry batch remove is not supported",
+                ));
+            }
+        };
 
-        let mut request = self
-            .client
-            .request(Method::POST, &format!("/io/{}/write", self.bucket))
-            .header(
-                CONTENT_TYPE,
-                HeaderValue::from_static("application/octet-stream"),
-            )
-            .header(
-                CONTENT_LENGTH,
-                HeaderValue::from_str(&content_length.to_string()).unwrap(),
-            )
+        request = request
             .header(
                 "x-reduct-start-ts",
                 HeaderValue::from_str(&start_ts.to_string()).unwrap(),
@@ -169,26 +203,36 @@ impl WriteRecordBatchBuilder {
         for record in &records {
             let idx = *entry_index.get(record.entry()).unwrap();
             let delta = record.timestamp_us() - start_ts;
-            let value = make_record_header_value(record);
+            let value = match self.batch_type {
+                WriteBatchType::Write => make_record_header_value(record),
+                WriteBatchType::Update => make_update_header_value(record),
+                WriteBatchType::Remove => String::new(),
+            };
             request = request.header(
                 make_batched_header_name(idx, delta),
                 HeaderValue::from_str(&value).unwrap(),
             );
         }
 
-        let client = Arc::clone(&self.client);
-        let stream = stream! {
-            for record in records {
-                let mut stream = record.stream_bytes();
-                while let Some(bytes) = stream.next().await {
-                    yield bytes;
-                }
-            }
-        };
+        let response = match self.batch_type {
+            WriteBatchType::Write => {
+                let client = Arc::clone(&self.client);
+                let stream = stream! {
+                    for record in records {
+                        let mut stream = record.stream_bytes();
+                        while let Some(bytes) = stream.next().await {
+                            yield bytes;
+                        }
+                    }
+                };
 
-        let response = client
-            .send_request(request.body(Body::wrap_stream(stream)))
-            .await?;
+                client
+                    .send_request(request.body(Body::wrap_stream(stream)))
+                    .await?
+            }
+            WriteBatchType::Update => self.client.send_request(request).await?,
+            WriteBatchType::Remove => unreachable!(),
+        };
 
         let mut failed_records = FailedRecordMap::new();
         response
@@ -263,6 +307,15 @@ fn make_record_header_value(record: &Record) -> String {
             content_type,
             format_label_delta(labels)
         )
+    }
+}
+
+fn make_update_header_value(record: &Record) -> String {
+    let labels = record.labels();
+    if labels.is_empty() {
+        "0,application/octet-stream".to_string()
+    } else {
+        format!("0,application/octet-stream,{}", format_label_delta(labels))
     }
 }
 
