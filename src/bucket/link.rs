@@ -13,14 +13,17 @@ use reduct_base::msg::query_link_api::{QueryLinkCreateRequest, QueryLinkCreateRe
 use std::sync::Arc;
 
 pub struct CreateQueryLinkBuilder {
+    entries: Vec<String>,
     request: QueryLinkCreateRequest,
     file_name: Option<String>,
     http_client: Arc<HttpClient>,
 }
 
 impl CreateQueryLinkBuilder {
-    pub(crate) fn new(bucket: String, entry: String, http_client: Arc<HttpClient>) -> Self {
+    pub(crate) fn new(bucket: String, entries: Vec<String>, http_client: Arc<HttpClient>) -> Self {
+        let entry = entries.first().cloned().unwrap_or_default();
         Self {
+            entries,
             request: QueryLinkCreateRequest {
                 bucket,
                 entry,
@@ -64,17 +67,31 @@ impl CreateQueryLinkBuilder {
 
     /// Send the create query link request.
     pub async fn send(self) -> Result<String, ReductError> {
+        let mut request = self.request;
+        if self.entries.len() > 1 {
+            if let Some(version) = self.http_client.get_api_version().await {
+                if version.1 < 18 {
+                    return Err(ReductError::new(
+                        reduct_base::error::ErrorCode::InvalidRequest,
+                        "Multi-entry query links are not supported in API versions below v1.18",
+                    ));
+                }
+            }
+
+            request.query.entries = Some(self.entries.clone());
+        }
+
         let file_name = self.file_name.unwrap_or(format!(
             "{}_{}.bin",
-            self.request.entry,
-            self.request.index.unwrap_or(0)
+            request.entry,
+            request.index.unwrap_or(0)
         ));
         let response: QueryLinkCreateResponse = self
             .http_client
             .send_and_receive_json(
                 Method::POST,
                 &format!("/links/{}", file_name),
-                Some(self.request),
+                Some(request),
             )
             .await?;
         Ok(response.link)
@@ -86,15 +103,18 @@ impl Bucket {
     ///
     /// # Arguments
     ///
-    /// * `entry` - The entry to create the query link for.
+    /// * `entry` - The entry or entries to create the query link for.
     ///
     /// # Returns
     ///
     /// Returns a builder for creating a query link.
-    pub fn create_query_link(&self, entry: &str) -> CreateQueryLinkBuilder {
+    pub fn create_query_link<In: super::read::IntoEntryList>(
+        &self,
+        entry: In,
+    ) -> CreateQueryLinkBuilder {
         CreateQueryLinkBuilder::new(
             self.name.clone(),
-            entry.to_string(),
+            entry.into_entry_list(),
             self.http_client.clone(),
         )
     }
@@ -135,6 +155,24 @@ mod tests {
             .send()
             .await
             .unwrap();
+        let body = reqwest::get(&link).await.unwrap().text().await.unwrap();
+        assert_eq!(body, "Hey entry-1!");
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_link_creation_multi_entry(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let link = bucket
+            .create_query_link(&["entry-1", "entry-2"])
+            .query(QueryEntry {
+                start: Some(0),
+                ..Default::default()
+            })
+            .send()
+            .await
+            .unwrap();
+
         let body = reqwest::get(&link).await.unwrap().text().await.unwrap();
         assert_eq!(body, "Hey entry-1!");
     }
