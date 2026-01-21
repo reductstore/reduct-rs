@@ -218,12 +218,16 @@ mod tests {
 
         pin_mut!(query);
         let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.entry(), "entry-1");
         assert_eq!(rec.timestamp_us(), 1000);
         let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.entry(), "entry-2");
         assert_eq!(rec.timestamp_us(), 2000);
         let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.entry(), "entry-2");
         assert_eq!(rec.timestamp_us(), 3000);
         let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.entry(), "entry-2");
         assert_eq!(rec.timestamp_us(), 4000);
         assert!(query.next().await.is_none());
     }

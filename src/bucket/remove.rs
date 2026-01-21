@@ -110,10 +110,10 @@ impl Bucket {
     ///     Ok(())
     /// }
     /// ```
-    pub fn remove_query(&self, entry: &str) -> RemoveQueryBuilder {
+    pub fn remove_query<In: super::read::IntoEntryList>(&self, entry: In) -> RemoveQueryBuilder {
         RemoveQueryBuilder::new(
             self.name.clone(),
-            entry.to_string(),
+            entry.into_entry_list(),
             self.http_client.clone(),
         )
     }
@@ -213,6 +213,41 @@ mod tests {
         );
 
         assert_eq!(removed_records, 1);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn remove_query_multi_entry(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+
+        let removed_records = bucket
+            .remove_query(&["entry-1", "entry-2"])
+            .start_us(1000)
+            .stop_us(4000)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(removed_records, 4);
+
+        for (entry, timestamp) in [
+            ("entry-1", 1000),
+            ("entry-2", 2000),
+            ("entry-2", 3000),
+            ("entry-2", 4000),
+        ] {
+            assert_eq!(
+                bucket
+                    .read_record(entry)
+                    .timestamp_us(timestamp)
+                    .send()
+                    .await
+                    .err()
+                    .unwrap()
+                    .status,
+                ErrorCode::NotFound
+            );
+        }
     }
 
     #[rstest]

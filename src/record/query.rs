@@ -150,7 +150,7 @@ impl QueryBuilder {
             self.query_v1().await
         } else {
             if let Some(version) = self.client.get_api_version().await {
-                if version.1 <= 18 {
+                if version.1 < 18 {
                     return Err(ReductError::new(
                         ErrorCode::InvalidRequest,
                         "Multi-entry queries are not supported in API versions below v1.18",
@@ -274,16 +274,16 @@ pub struct RemoveQueryBuilder {
     query: QueryEntry,
 
     bucket: String,
-    entry: String,
+    entries: Vec<String>,
     client: Arc<HttpClient>,
 }
 
 impl RemoveQueryBuilder {
-    pub(crate) fn new(bucket: String, entry: String, client: Arc<HttpClient>) -> Self {
+    pub(crate) fn new(bucket: String, entries: Vec<String>, client: Arc<HttpClient>) -> Self {
         Self {
             query: QueryEntry::default(),
             bucket,
-            entry,
+            entries,
             client,
         }
     }
@@ -359,16 +359,40 @@ impl RemoveQueryBuilder {
     /// * `Result<u64, ReductError>` - The number of records removed.
     pub async fn send(mut self) -> Result<u64, ReductError> {
         self.query.query_type = QueryType::Remove;
-        let response = self
-            .client
-            .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
-                Method::POST,
-                &format!("/b/{}/{}/q", self.bucket, self.entry),
-                Some(self.query.clone()),
-            )
-            .await?;
+        if self.entries.len() == 1 {
+            let entry = self.entries.first().cloned().unwrap();
+            let response = self
+                .client
+                .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
+                    Method::POST,
+                    &format!("/b/{}/{}/q", self.bucket, entry),
+                    Some(self.query.clone()),
+                )
+                .await?;
 
-        Ok(response.removed_records)
+            Ok(response.removed_records)
+        } else {
+            if let Some(version) = self.client.get_api_version().await {
+                if version.1 < 18 {
+                    return Err(ReductError::new(
+                        ErrorCode::InvalidRequest,
+                        "Multi-entry remove queries are not supported in API versions below v1.18",
+                    ));
+                }
+            }
+
+            self.query.entries = Some(self.entries.clone());
+            let response = self
+                .client
+                .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
+                    Method::POST,
+                    &format!("/io/{}/q", self.bucket),
+                    Some(self.query.clone()),
+                )
+                .await?;
+
+            Ok(response.removed_records)
+        }
     }
 }
 

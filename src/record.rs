@@ -58,6 +58,11 @@ impl Record {
         RecordBuilder::new()
     }
 
+    /// Entry name of the record
+    pub(crate) fn entry(&self) -> &str {
+        &self.entry
+    }
+
     /// Unix timestamp in microseconds
     pub fn timestamp_us(&self) -> u64 {
         self.timestamp
