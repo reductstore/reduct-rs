@@ -7,7 +7,8 @@ pub mod query;
 pub mod read_record;
 pub mod remove_record;
 pub mod update_record;
-pub mod write_batched_records;
+pub mod write_batched_records_v1;
+pub mod write_batched_records_v2;
 pub mod write_record;
 
 use bytes::{Bytes, BytesMut};

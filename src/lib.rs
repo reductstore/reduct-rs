@@ -14,7 +14,8 @@ pub use client::ReductClient;
 pub use record::query::{QueryBuilder, RemoveQueryBuilder};
 pub use record::read_record::ReadRecordBuilder;
 pub use record::remove_record::RemoveRecordBuilder;
-pub use record::write_batched_records::WriteBatchBuilder;
+pub use record::write_batched_records_v1::WriteBatchBuilder;
+pub use record::write_batched_records_v2::WriteRecordBatchBuilder;
 pub use record::write_record::WriteRecordBuilder;
 pub use record::{Labels, Record, RecordBuilder, RecordStream};
 

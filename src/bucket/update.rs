@@ -4,7 +4,7 @@
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::record::update_record::UpdateRecordBuilder;
-use crate::record::write_batched_records::WriteBatchType;
+use crate::record::write_batched_records_v1::WriteBatchType;
 use crate::{Bucket, WriteBatchBuilder};
 use std::sync::Arc;
 

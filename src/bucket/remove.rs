@@ -4,7 +4,7 @@
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::record::query::RemoveQueryBuilder;
-use crate::record::write_batched_records::WriteBatchType;
+use crate::record::write_batched_records_v1::WriteBatchType;
 use crate::{Bucket, RemoveRecordBuilder, WriteBatchBuilder};
 use http::Method;
 use reduct_base::error::ReductError;
