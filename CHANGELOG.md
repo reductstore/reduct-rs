@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add support for replication mode, [PR-53](https://github.com/reductstore/reduct-rs/pull/53)
 - Add `ResourceStatus` enum for non-blocking deletion support (READY/DELETING), [PR-55](https://github.com/reductstore/reduct-rs/pull/55)
 - Add support for Multi-entry API, [PR-60](https://github.com/reductstore/reduct-rs/pull/60)
+- Add multi-entry query link support (API v1.18+), [PR-61](https://github.com/reductstore/reduct-rs/pull/61)
 
 ## 1.17.2 - 2025-12-17
 
