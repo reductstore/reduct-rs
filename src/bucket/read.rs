@@ -212,6 +212,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    #[cfg(feature = "test-api-118")]
     async fn test_query_multi_entry(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let query = bucket.query(&["entry-1", "entry-2"]).send().await.unwrap();

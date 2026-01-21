@@ -673,6 +673,7 @@ pub(crate) mod tests {
 
         #[rstest]
         #[tokio::test]
+        #[cfg(feature = "test-api-118")]
         async fn test_set_replication_mode(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
