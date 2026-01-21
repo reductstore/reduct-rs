@@ -81,9 +81,14 @@ impl CreateQueryLinkBuilder {
             request.query.entries = Some(self.entries.clone());
         }
 
+        let default_name = if self.entries.len() > 1 {
+            request.bucket.clone()
+        } else {
+            request.entry.clone()
+        };
         let file_name = self.file_name.unwrap_or(format!(
             "{}_{}.bin",
-            request.entry,
+            default_name,
             request.index.unwrap_or(0)
         ));
         let response: QueryLinkCreateResponse = self
@@ -173,6 +178,7 @@ mod tests {
             .await
             .unwrap();
 
+        assert!(link.contains("links/test-bucket-1_"));
         let body = reqwest::get(&link).await.unwrap().text().await.unwrap();
         assert_eq!(body, "Hey entry-1!");
     }
