@@ -95,6 +95,7 @@ impl ReadRecordBuilder {
                 .unwrap()
                 .parse::<u64>()
                 .unwrap(),
+            entry: self.entry.clone(),
             labels,
             content_type: response
                 .headers()

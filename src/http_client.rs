@@ -7,11 +7,15 @@ use crate::client::{Result, API_BASE};
 use reduct_base::error::{ErrorCode, ReductError};
 use reqwest::header::HeaderValue;
 use reqwest::{Method, RequestBuilder, Response, Url};
+use tokio::sync::RwLock;
 
 /// Internal HTTP client to wrap reqwest.
+
+pub(crate) type Version = (u32, u32);
 pub(crate) struct HttpClient {
     base_url: Url,
     api_token: String,
+    api_version: RwLock<Option<Version>>,
     client: reqwest::Client,
 }
 
@@ -20,6 +24,7 @@ impl HttpClient {
         Ok(Self {
             base_url: Url::parse(base_url)?,
             api_token: format!("Bearer {}", api_token),
+            api_version: RwLock::new(None),
             client,
         })
     }
@@ -103,7 +108,8 @@ impl HttpClient {
         let response = match request.send().await {
             Ok(response) => {
                 if response.status().is_success() {
-                    Self::check_server_api_version(&response)?;
+                    *self.api_version.write().await =
+                        Some(Self::check_server_api_version(&response)?);
 
                     Ok(response)
                 } else {
@@ -123,8 +129,12 @@ impl HttpClient {
         };
         response
     }
+    pub async fn get_api_version(&self) -> Option<Version> {
+        let api_version = self.api_version.read().await;
+        api_version.clone()
+    }
 
-    fn check_server_api_version(response: &Response) -> Result<()> {
+    fn check_server_api_version(response: &Response) -> Result<Version> {
         let Some(api_version) = response
             .headers()
             .get("x-reduct-api")
@@ -168,7 +178,7 @@ impl HttpClient {
             );
         }
 
-        Ok(())
+        Ok((major, minor))
     }
 }
 

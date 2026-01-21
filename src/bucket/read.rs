@@ -1,4 +1,4 @@
-// Copyright 2024 ReductStore
+// Copyright 2024-2026 ReductStore
 // This Source Code Form is subject to the terms of the Mozilla Public
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -42,7 +42,7 @@ impl Bucket {
     /// #[tokio::main]
     /// async fn main() -> Result<(), ReductError> {
     ///    let client = ReductClient::builder()
-    ///         .url("https://play.reduct.store")
+    ///         .url("https://play.reduct.store/replica")
     ///         .api_token("reductstore")
     ///         .build();
     ///     let bucket = client.get_bucket("datasets").await?;
@@ -55,12 +55,39 @@ impl Bucket {
     ///     Ok(())
     /// }
     ///  ```
-    pub fn query(&self, entry: &str) -> QueryBuilder {
+    pub fn query<In: IntoEntryList>(&self, entry: In) -> QueryBuilder {
         QueryBuilder::new(
             self.name.clone(),
-            entry.to_string(),
+            entry.into_entry_list(),
             Arc::clone(&self.http_client),
         )
+    }
+}
+
+pub trait IntoEntryList {
+    fn into_entry_list(self) -> Vec<String>;
+}
+impl IntoEntryList for &str {
+    fn into_entry_list(self) -> Vec<String> {
+        vec![self.to_string()]
+    }
+}
+
+impl IntoEntryList for &[&str] {
+    fn into_entry_list(self) -> Vec<String> {
+        self.iter().map(|s| s.to_string()).collect()
+    }
+}
+
+impl<const N: usize> IntoEntryList for &[&str; N] {
+    fn into_entry_list(self) -> Vec<String> {
+        self.iter().map(|s| s.to_string()).collect()
+    }
+}
+
+impl IntoEntryList for Vec<String> {
+    fn into_entry_list(self) -> Vec<String> {
+        self
     }
 }
 
@@ -180,6 +207,24 @@ mod tests {
             }
         }
 
+        assert!(query.next().await.is_none());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_query_multi_entry(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let query = bucket.query(&["entry-1", "entry-2"]).send().await.unwrap();
+
+        pin_mut!(query);
+        let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.timestamp_us(), 1000);
+        let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.timestamp_us(), 2000);
+        let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.timestamp_us(), 3000);
+        let rec = query.next().await.unwrap().unwrap();
+        assert_eq!(rec.timestamp_us(), 4000);
         assert!(query.next().await.is_none());
     }
 
