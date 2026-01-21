@@ -1,4 +1,4 @@
-// Copyright 2023-2025 ReductStore
+// Copyright 2023-2026 ReductStore
 // This Source Code Form is subject to the terms of the Mozilla Public
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -12,6 +12,7 @@ use bytes::Bytes;
 use bytes::BytesMut;
 use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
+use reduct_base::batch::v2::{parse_batched_headers, EntryRecordHeader};
 use reduct_base::batch::{parse_batched_header, sort_headers_by_time, RecordHeader};
 use reduct_base::error::ErrorCode::Unknown;
 use reduct_base::error::{ErrorCode, ReductError};
@@ -19,24 +20,27 @@ use reduct_base::msg::entry_api::{QueryEntry, QueryInfo, QueryType, RemoveQueryI
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Method;
 use serde_json::Value;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+
+type QueryStream = Pin<Box<dyn Stream<Item = Result<Record, ReductError>> + Send>>;
 
 /// Builder for a query request.
 pub struct QueryBuilder {
     query: QueryEntry,
 
     bucket: String,
-    entry: String,
+    entries: Vec<String>,
     client: Arc<HttpClient>,
 }
 
 impl QueryBuilder {
-    pub(crate) fn new(bucket: String, entry: String, client: Arc<HttpClient>) -> Self {
+    pub(crate) fn new(bucket: String, entries: Vec<String>, client: Arc<HttpClient>) -> Self {
         Self {
             query: QueryEntry::default(),
             bucket,
-            entry,
+            entries,
             client,
         }
     }
@@ -140,26 +144,47 @@ impl QueryBuilder {
 
     /// Send the query request.
     pub async fn send(
-        mut self,
+        self,
     ) -> Result<impl Stream<Item = Result<Record, ReductError>>, ReductError> {
-        // use new POST API for new features
+        if self.entries.len() == 1 {
+            self.query_v1().await
+        } else {
+            if let Some(version) = self.client.get_api_version().await {
+                if version.1 < 18 {
+                    return Err(ReductError::new(
+                        ErrorCode::InvalidRequest,
+                        "Multi-entry queries are not supported in API versions below v1.18",
+                    ));
+                }
+            }
+
+            self.query_v2().await
+        }
+    }
+
+    async fn query_v1(mut self) -> Result<QueryStream, ReductError> {
         self.query.query_type = QueryType::Query;
+        let entry = self.entries.first().cloned().unwrap();
+
         let response = self
             .client
             .send_and_receive_json::<QueryEntry, QueryInfo>(
                 Method::POST,
-                &format!("/b/{}/{}/q", self.bucket, self.entry),
+                &format!("/b/{}/{}/q", self.bucket, entry),
                 Some(self.query.clone()),
             )
             .await?;
 
         let head_only = self.query.only_metadata.as_ref().unwrap_or(&false).clone();
 
-        Ok(stream! {
+        Ok(Box::pin(stream! {
             let mut last = false;
             while !last {
                 let method = if head_only { Method::HEAD } else { Method::GET };
-                let request = self.client.request(method, &format!("/b/{}/{}/batch?q={}", self.bucket, self.entry, response.id));
+                let request = self.client.request(
+                    method,
+                    &format!("/b/{}/{}/batch?q={}", self.bucket, entry, response.id),
+                );
                 let response = self.client.send_request(request).await?;
 
                 if response.status() == reqwest::StatusCode::NO_CONTENT {
@@ -179,7 +204,7 @@ impl QueryBuilder {
                     }
                 });
 
-                let stream = parse_batched_records(headers, rx, head_only).await?;
+                let stream = parse_batched_records(&entry, headers, rx, head_only).await?;
                 pin_mut!(stream);
                 while let Some(record) = stream.next().await {
                     let record = record?;
@@ -187,7 +212,58 @@ impl QueryBuilder {
                     yield Ok(record.0);
                 }
             }
-        })
+        }))
+    }
+
+    async fn query_v2(mut self) -> Result<QueryStream, ReductError> {
+        self.query.query_type = QueryType::Query;
+        self.query.entries = Some(self.entries.clone());
+        let response = self
+            .client
+            .send_and_receive_json::<QueryEntry, QueryInfo>(
+                Method::POST,
+                &format!("/io/{}/q", self.bucket),
+                Some(self.query.clone()),
+            )
+            .await?;
+
+        let head_only = self.query.only_metadata.as_ref().unwrap_or(&false).clone();
+
+        Ok(Box::pin(stream! {
+            let mut last = false;
+            while !last {
+                let method = if head_only { Method::HEAD } else { Method::GET };
+                let request = self
+                    .client
+                    .request(method, &format!("/io/{}/read", self.bucket))
+                    .header("x-reduct-query-id", response.id.to_string());
+                let response = self.client.send_request(request).await?;
+
+                if response.status() == reqwest::StatusCode::NO_CONTENT {
+                    break;
+                }
+
+                let headers = response.headers().clone();
+
+                let (tx, rx) = unbounded();
+                tokio::spawn(async move {
+                    let mut stream = response.bytes_stream();
+                    while let Some(bytes) = stream.next().await {
+                        if let Err(_) = tx.send(bytes).await {
+                            break;
+                        }
+                    }
+                });
+
+                let stream = parse_batched_records_v2(headers, rx, head_only).await?;
+                pin_mut!(stream);
+                while let Some(record) = stream.next().await {
+                    let record = record?;
+                    last = record.1;
+                    yield Ok(record.0);
+                }
+            }
+        }))
     }
 }
 
@@ -198,16 +274,16 @@ pub struct RemoveQueryBuilder {
     query: QueryEntry,
 
     bucket: String,
-    entry: String,
+    entries: Vec<String>,
     client: Arc<HttpClient>,
 }
 
 impl RemoveQueryBuilder {
-    pub(crate) fn new(bucket: String, entry: String, client: Arc<HttpClient>) -> Self {
+    pub(crate) fn new(bucket: String, entries: Vec<String>, client: Arc<HttpClient>) -> Self {
         Self {
             query: QueryEntry::default(),
             bucket,
-            entry,
+            entries,
             client,
         }
     }
@@ -283,28 +359,102 @@ impl RemoveQueryBuilder {
     /// * `Result<u64, ReductError>` - The number of records removed.
     pub async fn send(mut self) -> Result<u64, ReductError> {
         self.query.query_type = QueryType::Remove;
-        let response = self
-            .client
-            .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
-                Method::POST,
-                &format!("/b/{}/{}/q", self.bucket, self.entry),
-                Some(self.query.clone()),
-            )
-            .await?;
+        if self.entries.len() == 1 {
+            let entry = self.entries.first().cloned().unwrap();
+            let response = self
+                .client
+                .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
+                    Method::POST,
+                    &format!("/b/{}/{}/q", self.bucket, entry),
+                    Some(self.query.clone()),
+                )
+                .await?;
 
-        Ok(response.removed_records)
+            Ok(response.removed_records)
+        } else {
+            if let Some(version) = self.client.get_api_version().await {
+                if version.1 < 18 {
+                    return Err(ReductError::new(
+                        ErrorCode::InvalidRequest,
+                        "Multi-entry remove queries are not supported in API versions below v1.18",
+                    ));
+                }
+            }
+
+            self.query.entries = Some(self.entries.clone());
+            let response = self
+                .client
+                .send_and_receive_json::<QueryEntry, RemoveQueryInfo>(
+                    Method::POST,
+                    &format!("/io/{}/q", self.bucket),
+                    Some(self.query.clone()),
+                )
+                .await?;
+
+            Ok(response.removed_records)
+        }
     }
 }
 
 async fn parse_batched_records(
+    queried_entry: &str,
     headers: HeaderMap,
     rx: Receiver<Result<Bytes, reqwest::Error>>,
     head_only: bool,
 ) -> Result<impl Stream<Item = Result<(Record, bool), ReductError>>, ReductError> {
-    //sort headers by names
     let sorted_records = sort_headers_by_time(&headers)?;
+    let last = headers.get("x-reduct-last") == Some(&HeaderValue::from_str("true").unwrap());
+    let mut records = Vec::with_capacity(sorted_records.len());
 
-    let records_total = sorted_records.iter().count();
+    for (timestamp, value) in sorted_records {
+        let RecordHeader {
+            content_length,
+            content_type,
+            labels,
+        } = parse_batched_header(value.to_str().unwrap()).unwrap();
+        records.push((
+            timestamp,
+            queried_entry.to_string(),
+            RecordHeader {
+                content_length,
+                content_type,
+                labels,
+            },
+        ));
+    }
+
+    parse_batched_records_from_headers(records, last, rx, head_only).await
+}
+
+async fn parse_batched_records_v2(
+    headers: HeaderMap,
+    rx: Receiver<Result<Bytes, reqwest::Error>>,
+    head_only: bool,
+) -> Result<impl Stream<Item = Result<(Record, bool), ReductError>>, ReductError> {
+    let sorted_records = parse_batched_headers(&headers)?;
+    let last = headers.get("x-reduct-last") == Some(&HeaderValue::from_str("true").unwrap());
+    let records = sorted_records
+        .into_iter()
+        .map(
+            |EntryRecordHeader {
+                 timestamp,
+                 entry,
+                 header,
+                 ..
+             }| (timestamp, entry, header),
+        )
+        .collect::<Vec<_>>();
+
+    parse_batched_records_from_headers(records, last, rx, head_only).await
+}
+
+async fn parse_batched_records_from_headers(
+    records: Vec<(u64, String, RecordHeader)>,
+    last: bool,
+    rx: Receiver<Result<Bytes, reqwest::Error>>,
+    head_only: bool,
+) -> Result<impl Stream<Item = Result<(Record, bool), ReductError>>, ReductError> {
+    let records_total = records.len();
     let mut records_count = 0;
 
     let unwrap_byte = |bytes: Result<Bytes, reqwest::Error>| match bytes {
@@ -324,56 +474,47 @@ async fn parse_batched_records(
     Ok(stream! {
         let mut rest_data = BytesMut::new();
 
-        for (timestamp, value) in sorted_records {
-                let RecordHeader{content_length, content_type, labels} = parse_batched_header(value.to_str().unwrap()).unwrap();
-                let last =  headers.get("x-reduct-last") == Some(&HeaderValue::from_str("true").unwrap());
+        for (timestamp, entry, header) in records.into_iter() {
+            let RecordHeader { content_length, content_type, labels } = header;
+            records_count += 1;
 
-                records_count += 1;
+            let data: Option<RecordStream> = if head_only {
+                None
+            } else if records_count == records_total {
+                let first_chunk: Bytes = rest_data.clone().into();
+                let rx = rx.clone();
 
-
-                let data: Option<RecordStream> = if head_only {
-                    None
-                } else if records_count == records_total {
-                    // last record in batched records read in client code
-                    let first_chunk: Bytes = rest_data.clone().into();
-                    let rx = rx.clone();
-
-                    Some(Box::pin(stream! {
-                        yield Ok(first_chunk);
-                        while let Ok(bytes) = rx.recv().await {
-                            yield unwrap_byte(bytes);
-                        }
-
-                    }))
-                } else {
-                    // batched records must be read in order, so it is safe to read them here
-                    // instead of reading them in the use code with an async interator.
-                    // The batched records are small if they are not the last.
-                    // The last batched record is read in the async generator in chunks.
-                    let mut data = rest_data.clone();
+                Some(Box::pin(stream! {
+                    yield Ok(first_chunk);
                     while let Ok(bytes) = rx.recv().await {
-                        data.extend_from_slice(&unwrap_byte(bytes)?);
-                        if data.len() >= content_length  as usize {
-                            break;
-                        }
+                        yield unwrap_byte(bytes);
                     }
+                }))
+            } else {
+                let mut data = rest_data.clone();
+                while let Ok(bytes) = rx.recv().await {
+                    data.extend_from_slice(&unwrap_byte(bytes)?);
+                    if data.len() >= content_length  as usize {
+                        break;
+                    }
+                }
 
-                    rest_data = data.split_off(content_length as usize);
-                    data.truncate(content_length as usize);
+                rest_data = data.split_off(content_length as usize);
+                data.truncate(content_length as usize);
 
-                    Some(Box::pin(stream! {
-                        yield Ok(data.into());
-                    }))
-                };
+                Some(Box::pin(stream! {
+                    yield Ok(data.into());
+                }))
+            };
 
-                yield Ok((Record {
-                    timestamp,
-                    labels,
-                    content_type,
-                    content_length,
-                    data
-                }, last));
-
+            yield Ok((Record {
+                timestamp,
+                entry,
+                labels,
+                content_type,
+                content_length,
+                data
+            }, last));
         }
     })
 }

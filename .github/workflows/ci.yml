@@ -52,6 +52,26 @@ jobs:
           --env RS_API_TOKEN=TOKEN
           --env RS_EXT_PATH=/tmp
           --env RS_LICENSE_PATH=/misc/lic.key -d reduct/store:${{ matrix.reductstore_version }}
+
+      - name: Use cache for Cargo
+        uses: runs-on/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-rust${{ env.MINIMAL_RUST_VERSION }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        env:
+          RUNS_ON_S3_BUCKET_CACHE: reduct-cache
+          RUNS_ON_S3_BUCKET_ENDPOINT: https://fsn1.your-objectstorage.com
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_CACHE_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_CACHE_SECRET_KEY }}
+          AWS_REGION: fsn1
+          AWS_DEFAULT_REGION: fsn1
+
+
       - name: Run Client SDK tests
         run: RS_API_TOKEN=TOKEN cargo test --features ${{ matrix.features }} -- --test-threads=1
 

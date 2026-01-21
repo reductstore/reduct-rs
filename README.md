@@ -51,7 +51,7 @@ async fn main() -> Result<(), ReductError> {
         .await?;
 
     bucket
-        .write_record("sensor-1")
+        .write_record("sensor-2")
         .data("<Blob data>")
         .timestamp(start + Duration::from_secs(1))
         .add_label("score", 20)
@@ -60,7 +60,7 @@ async fn main() -> Result<(), ReductError> {
 
     // 4. Query the data by time range and condition
     let query = bucket
-        .query("sensor-1")
+        .query("sensor-*")
         .start(start)
         .stop(start + Duration::from_secs(2))
         .when(json!({"&score": {"$gt": 15}}))
@@ -70,6 +70,7 @@ async fn main() -> Result<(), ReductError> {
     let mut query = pin!(query);
     while let Some(record) = query.next().await {
         let record = record?;
+        println!("Record entry: {}", record.entry());
         println!("Record timestamp: {:?}", record.timestamp());
         println!("Record size: {}", record.content_length());
         println!("{:?}", record.bytes().await?);

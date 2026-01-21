@@ -220,10 +220,10 @@ impl Bucket {
 mod tests {
     use rstest::{fixture, rstest};
 
-    use reduct_base::error::ErrorCode;
-
     use crate::client::tests::{bucket_settings, client};
     use crate::client::ReductClient;
+    use reduct_base::error::ErrorCode;
+    use tokio::time::sleep;
 
     use super::*;
 
@@ -269,6 +269,7 @@ mod tests {
         let bucket = bucket.await;
         bucket.remove().await.unwrap();
 
+        sleep(std::time::Duration::from_millis(100)).await; // Wait a bit for the server to process the deletion
         assert_eq!(
             bucket.info().await.err().unwrap().status,
             ErrorCode::NotFound

@@ -1,26 +1,22 @@
-// Copyright 2023-2024 ReductStore
+// Copyright 2023-2026 ReductStore
 // This Source Code Form is subject to the terms of the Mozilla Public
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use reqwest::{Method, Url};
-
-use std::sync::Arc;
-use std::time::Duration;
-
 use crate::bucket::BucketBuilder;
 use crate::http_client::HttpClient;
+use crate::replication::ReplicationBuilder;
 use crate::Bucket;
 use reduct_base::error::{ErrorCode, ReductError};
-
 use reduct_base::msg::replication_api::{
     FullReplicationInfo, ReplicationInfo, ReplicationList, ReplicationMode, ReplicationModePayload,
     ReplicationSettings,
 };
-
-use crate::replication::ReplicationBuilder;
 use reduct_base::msg::server_api::{BucketInfoList, ServerInfo};
 use reduct_base::msg::token_api::{Permissions, Token, TokenCreateResponse, TokenList};
+use reqwest::{Method, Url};
+use std::sync::Arc;
+use std::time::Duration;
 
 pub struct ReductClientBuilder {
     url: String,
@@ -434,6 +430,7 @@ pub(crate) mod tests {
     use bytes::Bytes;
     use reduct_base::msg::bucket_api::{BucketSettings, QuotaType};
     use rstest::{fixture, rstest};
+    use tokio::time::sleep;
 
     mod build {
         use super::*;
@@ -615,7 +612,6 @@ pub(crate) mod tests {
             assert_eq!(replications.len(), 1);
         }
 
-        #[cfg(feature = "test-api-117")]
         #[rstest]
         #[tokio::test]
         async fn test_get_replication(
@@ -651,7 +647,6 @@ pub(crate) mod tests {
             assert_eq!(replication.diagnostics, Diagnostics::default());
         }
 
-        #[cfg(feature = "test-api-117")]
         #[rstest]
         #[tokio::test]
         async fn test_update_replication(
@@ -676,9 +671,9 @@ pub(crate) mod tests {
             );
         }
 
-        #[cfg(feature = "test-api-117")]
         #[rstest]
         #[tokio::test]
+        #[cfg(feature = "test-api-118")]
         async fn test_set_replication_mode(
             #[future] client: ReductClient,
             settings: ReplicationSettings,
@@ -775,6 +770,8 @@ pub(crate) mod tests {
                 client.delete_replication(&replication.name).await.unwrap();
             }
         }
+
+        sleep(std::time::Duration::from_millis(100)).await; // Wait for any non-blocking deletions to complete
 
         let bucket = client
             .create_bucket("test-bucket-1")

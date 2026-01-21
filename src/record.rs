@@ -7,7 +7,8 @@ pub mod query;
 pub mod read_record;
 pub mod remove_record;
 pub mod update_record;
-pub mod write_batched_records;
+pub mod write_batched_records_v1;
+pub mod write_batched_records_v2;
 pub mod write_record;
 
 use bytes::{Bytes, BytesMut};
@@ -42,6 +43,7 @@ impl Debug for Record {
 /// A record is a timestamped piece of data with labels
 pub struct Record {
     timestamp: u64,
+    entry: String,
     labels: Labels,
     content_type: String,
     content_length: u64,
@@ -55,6 +57,11 @@ pub struct RecordBuilder {
 impl Record {
     pub fn builder() -> RecordBuilder {
         RecordBuilder::new()
+    }
+
+    /// Entry name of the record
+    pub(crate) fn entry(&self) -> &str {
+        &self.entry
     }
 
     /// Unix timestamp in microseconds
@@ -121,12 +128,21 @@ impl RecordBuilder {
         Self {
             record: Record {
                 timestamp: from_system_time(SystemTime::now()),
+                entry: "".to_string(),
                 labels: Default::default(),
                 content_type: "".to_string(),
                 content_length: 0,
                 data: None,
             },
         }
+    }
+
+    pub fn entry<Str>(mut self, entry: Str) -> Self
+    where
+        Str: Into<String>,
+    {
+        self.record.entry = entry.into();
+        self
     }
 
     /// Set the timestamp of the record to write as a unix timestamp in microseconds.
