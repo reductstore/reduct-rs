@@ -41,12 +41,13 @@ impl Bucket {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), ReductError> {
-    ///    let client = ReductClient::builder()
+    ///    use reduct_rs::condition;
+    /// let client = ReductClient::builder()
     ///         .url("https://play.reduct.store/replica")
     ///         .api_token("reductstore")
     ///         .build();
     ///     let bucket = client.get_bucket("datasets").await?;
-    ///     let query = bucket.query("cats").limit(10).send().await?;
+    ///     let query = bucket.query("cats").when(condition!({"$limit": 10})).send().await?;
     ///     tokio::pin!(query);
     ///     while let Some(record) = query.next().await {
     ///         let record = record?;
