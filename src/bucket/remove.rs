@@ -138,7 +138,6 @@ impl Bucket {
 mod tests {
     use super::*;
     use crate::bucket::tests::bucket;
-    use bytes::Bytes;
     use reduct_base::error::ErrorCode;
     use rstest::rstest;
     use serde_json::json;

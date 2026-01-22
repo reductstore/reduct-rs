@@ -79,38 +79,6 @@ impl ReplicationBuilder {
         self
     }
 
-    /// Set the replication each_s setting.
-    ///
-    /// Replicate a record every S seconds if set.
-    ///
-    /// # Arguments
-    ///
-    /// * `each_s` - Replicate a record every S seconds.
-    #[deprecated(
-        since = "1.15.0",
-        note = "Use `$each_t` operator in `when` condition. It will be removed in v1.18.0."
-    )]
-    pub fn each_s(mut self, each_s: f64) -> Self {
-        self.settings.each_s = Some(each_s);
-        self
-    }
-
-    /// Set the replication each_n setting.
-    ///
-    /// Replicate every Nth record if set.
-    ///
-    /// # Arguments
-    ///
-    /// * `each_n` - Replicate every Nth record.
-    #[deprecated(
-        since = "1.15.0",
-        note = "Use `$each_n` operator in `when` condition. It will be removed in v1.18.0."
-    )]
-    pub fn each_n(mut self, each_n: u64) -> Self {
-        self.settings.each_n = Some(each_n);
-        self
-    }
-
     /// Set the replication conditional query.
     ///
     /// # Arguments

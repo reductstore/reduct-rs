@@ -602,8 +602,6 @@ pub(crate) mod tests {
                 .dst_host(settings.dst_host.as_str())
                 .dst_token(settings.dst_token.unwrap_or_default().as_str())
                 .entries(settings.entries.clone())
-                .each_s(settings.each_s.unwrap())
-                .each_n(settings.each_n.unwrap())
                 .when(settings.when.unwrap())
                 .send()
                 .await

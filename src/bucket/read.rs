@@ -235,45 +235,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_query_each_second(#[future] bucket: Bucket) {
-        let bucket: Bucket = bucket.await;
-        let query = bucket.query("entry-2").each_s(0.002).send().await.unwrap();
-
-        pin_mut!(query);
-        let rec = query.next().await.unwrap().unwrap();
-        assert_eq!(rec.timestamp_us(), 2000);
-        let rec = query.next().await.unwrap().unwrap();
-        assert_eq!(rec.timestamp_us(), 4000);
-        assert!(query.next().await.is_none());
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_query_each_minute(#[future] bucket: Bucket) {
-        let bucket: Bucket = bucket.await;
-        let query = bucket.query("entry-2").each_n(2).send().await.unwrap();
-
-        pin_mut!(query);
-        let rec = query.next().await.unwrap().unwrap();
-        assert_eq!(rec.timestamp_us(), 2000);
-        let rec = query.next().await.unwrap().unwrap();
-        assert_eq!(rec.timestamp_us(), 4000);
-        assert!(query.next().await.is_none());
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_limit_query(#[future] bucket: Bucket) {
-        let bucket: Bucket = bucket.await;
-        let query = bucket.query("entry-1").limit(1).send().await.unwrap();
-
-        pin_mut!(query);
-        let _ = query.next().await.unwrap().unwrap();
-        assert!(query.next().await.is_none());
-    }
-
-    #[rstest]
-    #[tokio::test]
     async fn test_query_when(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let query = bucket

@@ -90,39 +90,6 @@ impl QueryBuilder {
         self
     }
 
-    /// Set S, to return a record every S seconds.
-    /// default: return all records
-    #[deprecated(
-        since = "1.15.0",
-        note = "Use `$each_t` operator in `when` condition. It will be removed in v1.18.0."
-    )]
-    pub fn each_s(mut self, each_s: f64) -> Self {
-        self.query.each_s = Some(each_s);
-        self
-    }
-
-    /// Set N, to return every N records.
-    /// default: return all records
-    #[deprecated(
-        since = "1.15.0",
-        note = "Use `$each_n` operator in `when` condition. It will be removed in v1.18.0."
-    )]
-    pub fn each_n(mut self, each_n: u64) -> Self {
-        self.query.each_n = Some(each_n);
-        self
-    }
-
-    /// Set a limit for the query.
-    /// default: unlimited
-    #[deprecated(
-        since = "1.15.0",
-        note = "Use `$limit` operator in `when` condition. It will be removed in v1.18.0."
-    )]
-    pub fn limit(mut self, limit: u64) -> Self {
-        self.query.limit = Some(limit);
-        self
-    }
-
     /// Set TTL for the query.
     pub fn ttl(mut self, ttl: Duration) -> Self {
         self.query.ttl = Some(ttl.as_secs());
@@ -325,28 +292,6 @@ impl RemoveQueryBuilder {
     /// default: false
     pub fn strict(mut self, strict: bool) -> Self {
         self.query.strict = Some(strict);
-        self
-    }
-
-    /// Set S, to return a record every S seconds.
-    /// default: return all records
-    #[deprecated(
-        since = "1.15.0",
-        note = "Use `$each_t` operator in `when` condition. It will be removed in v1.18.0."
-    )]
-    pub fn each_s(mut self, each_s: f64) -> Self {
-        self.query.each_s = Some(each_s);
-        self
-    }
-
-    /// Set N, to return every N records.
-    /// default: return all records
-    #[deprecated(
-        since = "1.15.0",
-        note = "Use `$each_n` operator in `when` condition. It will be removed in v1.18.0."
-    )]
-    pub fn each_n(mut self, each_n: u64) -> Self {
-        self.query.each_n = Some(each_n);
         self
     }
 
