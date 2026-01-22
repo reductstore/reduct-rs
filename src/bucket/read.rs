@@ -41,12 +41,13 @@ impl Bucket {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), ReductError> {
-    ///    let client = ReductClient::builder()
+    ///    use reduct_rs::condition;
+    /// let client = ReductClient::builder()
     ///         .url("https://play.reduct.store/replica")
     ///         .api_token("reductstore")
     ///         .build();
     ///     let bucket = client.get_bucket("datasets").await?;
-    ///     let query = bucket.query("cats").limit(10).send().await?;
+    ///     let query = bucket.query("cats").when(condition!({"$limit": 10})).send().await?;
     ///     tokio::pin!(query);
     ///     while let Some(record) = query.next().await {
     ///         let record = record?;
@@ -230,45 +231,6 @@ mod tests {
         let rec = query.next().await.unwrap().unwrap();
         assert_eq!(rec.entry(), "entry-2");
         assert_eq!(rec.timestamp_us(), 4000);
-        assert!(query.next().await.is_none());
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_query_each_second(#[future] bucket: Bucket) {
-        let bucket: Bucket = bucket.await;
-        let query = bucket.query("entry-2").each_s(0.002).send().await.unwrap();
-
-        pin_mut!(query);
-        let rec = query.next().await.unwrap().unwrap();
-        assert_eq!(rec.timestamp_us(), 2000);
-        let rec = query.next().await.unwrap().unwrap();
-        assert_eq!(rec.timestamp_us(), 4000);
-        assert!(query.next().await.is_none());
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_query_each_minute(#[future] bucket: Bucket) {
-        let bucket: Bucket = bucket.await;
-        let query = bucket.query("entry-2").each_n(2).send().await.unwrap();
-
-        pin_mut!(query);
-        let rec = query.next().await.unwrap().unwrap();
-        assert_eq!(rec.timestamp_us(), 2000);
-        let rec = query.next().await.unwrap().unwrap();
-        assert_eq!(rec.timestamp_us(), 4000);
-        assert!(query.next().await.is_none());
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_limit_query(#[future] bucket: Bucket) {
-        let bucket: Bucket = bucket.await;
-        let query = bucket.query("entry-1").limit(1).send().await.unwrap();
-
-        pin_mut!(query);
-        let _ = query.next().await.unwrap().unwrap();
         assert!(query.next().await.is_none());
     }
 
