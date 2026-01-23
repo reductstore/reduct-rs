@@ -377,6 +377,8 @@ async fn parse_batched_records_v2(
     head_only: bool,
 ) -> Result<impl Stream<Item = Result<(Record, bool), ReductError>>, ReductError> {
     // Handle empty batches gracefully (when x-reduct-entries header is empty/missing)
+    // The reduct-base library returns an UnprocessableEntity error with a specific message
+    // when the x-reduct-entries header is empty, which indicates an empty batch.
     let sorted_records = match parse_batched_headers(&headers) {
         Ok(records) => records,
         Err(err)
