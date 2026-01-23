@@ -236,6 +236,26 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    #[cfg(feature = "test-api-118")]
+    async fn test_query_multi_entry_empty_batch(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        // Query with a condition that matches no records - should get empty batch
+        let query = bucket
+            .query(&["entry-1", "entry-2"])
+            .when(json!({
+                "&entry": { "$eq": 999}  // No record has entry label = 999
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        pin_mut!(query);
+        // Should handle empty batch without crashing
+        assert!(query.next().await.is_none());
+    }
+
+    #[rstest]
+    #[tokio::test]
     async fn test_query_when(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let query = bucket
