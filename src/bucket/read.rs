@@ -68,7 +68,20 @@ impl Bucket {
 pub trait IntoEntryList {
     fn into_entry_list(self) -> Vec<String>;
 }
+
 impl IntoEntryList for &str {
+    fn into_entry_list(self) -> Vec<String> {
+        vec![self.to_string()]
+    }
+}
+
+impl IntoEntryList for String {
+    fn into_entry_list(self) -> Vec<String> {
+        vec![self]
+    }
+}
+
+impl IntoEntryList for &String {
     fn into_entry_list(self) -> Vec<String> {
         vec![self.to_string()]
     }
