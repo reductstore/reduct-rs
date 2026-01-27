@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - each_n`, `each_s` and `limit` parameters in `QueryBuilder` and `ReplicationSettings` are deprecated, [PR-62](https://github.com/reductstore/reduct-rs/pull/62)
 
+### Fixed
+
+- Fix compaitlibity break for query calls with &String, [PR-65](https://github.com/reductstore/reduct-rs/pull/65)
+
 ## 1.17.2 - 2025-12-17
 
 ### Fixed
