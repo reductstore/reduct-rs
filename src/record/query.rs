@@ -376,23 +376,7 @@ async fn parse_batched_records_v2(
     rx: Receiver<Result<Bytes, reqwest::Error>>,
     head_only: bool,
 ) -> Result<impl Stream<Item = Result<(Record, bool), ReductError>>, ReductError> {
-    // Handle empty batches gracefully (when x-reduct-entries header is empty/missing)
-    // The reduct-base library returns an UnprocessableEntity error with a specific message
-    // when the x-reduct-entries header is empty, which indicates an empty batch.
-    let sorted_records = match parse_batched_headers(&headers) {
-        Ok(records) => records,
-        Err(err)
-            if err.status() == ErrorCode::UnprocessableEntity
-                && err
-                    .message()
-                    .contains("x-reduct-entries header is required") =>
-        {
-            // Empty batch - return empty list
-            Vec::new()
-        }
-        Err(err) => return Err(err),
-    };
-
+    let sorted_records = parse_batched_headers(&headers)?;
     let last = headers.get("x-reduct-last") == Some(&HeaderValue::from_str("true").unwrap());
     let records = sorted_records
         .into_iter()
