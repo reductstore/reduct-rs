@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 1.18.0 - 2026-02-04
+
 ### Added
 
 - Add support for replication mode, [PR-53](https://github.com/reductstore/reduct-rs/pull/53)
