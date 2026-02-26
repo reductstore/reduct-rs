@@ -223,7 +223,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg(feature = "test-api-118")]
     async fn test_batched_write_multi_entry(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let batch = bucket.write_record_batch();
@@ -267,7 +266,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[cfg(feature = "test-api-118")]
     async fn test_batched_write_multi_entry_with_error(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         bucket

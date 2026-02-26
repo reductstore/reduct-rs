@@ -4,14 +4,14 @@
 - Library entry is `src/lib.rs`; client surface is split into `client.rs`, `http_client.rs`, and feature modules under `src/bucket`, `src/record`, and `src/replication.rs`.
 - Examples demonstrating API usage live in `examples/hallo_world.rs` and `examples/query.rs`; use them as runnable docs.
 - Tests sit next to the code inside `mod tests` blocks and rely on async Tokio + `rstest`; there is no standalone `tests/` folder.
-- `Cargo.toml` pins Rust 1.89 (edition 2021) and defines the `test-api-118` feature used for compatibility checks against older API behavior.
+- `Cargo.toml` pins Rust 1.89 (edition 2021) and defines the `test-api-119` feature used for compatibility checks against older API behavior.
 
 ## Build, Test, and Development Commands
 - `cargo fmt --all` — required by CI; keep it clean before pushing.
 - `cargo check` — fast sanity compile (also wired in pre-commit).
 - `cargo build --release` — produce optimized artifacts.
 - Start ReductStore locally before tests: `docker run --rm --network host -e RS_API_TOKEN=TOKEN reduct/store:latest` (expects HTTP on `127.0.0.1:8383`).
-- `RS_API_TOKEN=TOKEN cargo test --features default -- --test-threads=1` — main test suite; use `--features "default,test-api-118"` to exercise the backward-compat matrix (dev branch).
+- `RS_API_TOKEN=TOKEN cargo test --features default -- --test-threads=1` — main test suite; use `--features "default,test-api-119"` to exercise the backward-compat matrix (dev branch).
 - `cargo run --example hallo_world` (or `query`) — run examples against the local server.
 
 ## Coding Style & Naming Conventions
