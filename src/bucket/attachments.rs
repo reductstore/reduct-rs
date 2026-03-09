@@ -95,7 +95,7 @@ impl Bucket {
         let mut batch = self.update_record_batch();
 
         let query = if let Some(keys) = attachment_keys {
-            let mut when = vec![json!("&key")];
+            let mut when = vec![json!({"&key": {"$cast": "string"}})];
             when.extend(keys.into_iter().map(Value::from));
             self.query(meta_entry.clone())
                 .when(json!({"$in": when}))
@@ -199,6 +199,45 @@ mod tests {
 
         let attachments = bucket.read_attachments(ENTRY).await.unwrap();
         assert_eq!(attachments, selected_after_remove);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_remove_attachments_with_numeric_keys(#[future] bucket: Bucket) {
+        let bucket = bucket.await;
+        bucket
+            .write_attachments(
+                ENTRY,
+                HashMap::from([
+                    (
+                        "1".to_string(),
+                        json!({"enabled": true, "values": [1, 2, 3]}),
+                    ),
+                    ("2.5".to_string(), json!({"name": "test"})),
+                ]),
+            )
+            .await
+            .unwrap();
+
+        let attachments = bucket.read_attachments(ENTRY).await.unwrap();
+        assert_eq!(
+            attachments,
+            HashMap::from([
+                (
+                    "1".to_string(),
+                    json!({"enabled": true, "values": [1, 2, 3]})
+                ),
+                ("2.5".to_string(), json!({"name": "test"})),
+            ])
+        );
+
+        bucket
+            .remove_attachments(ENTRY, Some(vec!["1".to_string(), "2.5".to_string()]))
+            .await
+            .unwrap();
+
+        let attachments = bucket.read_attachments(ENTRY).await.unwrap();
+        assert_eq!(attachments, HashMap::new());
     }
 
     #[rstest]
