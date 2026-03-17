@@ -14,7 +14,7 @@ use reduct_base::msg::replication_api::{
 };
 use reduct_base::msg::server_api::{BucketInfoList, ServerInfo};
 use reduct_base::msg::token_api::{Permissions, Token, TokenCreateResponse, TokenList};
-use reqwest::{Method, Url};
+use reqwest::{Certificate, Method, Url};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -24,6 +24,7 @@ pub struct ReductClientBuilder {
     timeout: Duration,
     http1_only: bool,
     verify_ssl: bool,
+    ca_cert_path: Option<String>,
 }
 
 pub type Result<T> = std::result::Result<T, ReductError>;
@@ -38,6 +39,7 @@ impl ReductClientBuilder {
             timeout: Duration::from_secs(30),
             http1_only: false,
             verify_ssl: true,
+            ca_cert_path: None,
         }
     }
 
@@ -63,6 +65,29 @@ impl ReductClientBuilder {
             .timeout(self.timeout)
             .cookie_store(true)
             .danger_accept_invalid_certs(!self.verify_ssl);
+        let builder = if let Some(ca_cert_path) = self.ca_cert_path {
+            let certs = std::fs::read(&ca_cert_path)
+                .map_err(|e| {
+                    ReductError::new(
+                        ErrorCode::Unknown,
+                        &format!("Failed to read CA certificate '{}': {}", ca_cert_path, e),
+                    )
+                })
+                .and_then(|pem| {
+                    Certificate::from_pem_bundle(&pem).map_err(|e| {
+                        ReductError::new(
+                            ErrorCode::Unknown,
+                            &format!("Failed to parse CA certificate '{}': {}", ca_cert_path, e),
+                        )
+                    })
+                })?;
+
+            certs
+                .into_iter()
+                .fold(builder, |builder, cert| builder.add_root_certificate(cert))
+        } else {
+            builder
+        };
         let builder = if self.http1_only {
             builder.http1_only()
         } else {
@@ -120,6 +145,12 @@ impl ReductClientBuilder {
     /// Set the SSL verification to false.
     pub fn verify_ssl(mut self, verify_ssl: bool) -> Self {
         self.verify_ssl = verify_ssl;
+        self
+    }
+
+    /// Add a custom CA certificate bundle/file in PEM format.
+    pub fn ca_cert_path(mut self, ca_cert_path: &str) -> Self {
+        self.ca_cert_path = Some(ca_cert_path.to_string());
         self
     }
 }
@@ -434,6 +465,28 @@ pub(crate) mod tests {
 
     mod build {
         use super::*;
+        use std::fs;
+        use std::path::Path;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        struct TempCaCert(String);
+
+        impl TempCaCert {
+            fn path(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl Drop for TempCaCert {
+            fn drop(&mut self) {
+                let _ = fs::remove_file(&self.0);
+            }
+        }
+
+        #[fixture]
+        fn missing_ca_cert_path() -> &'static str {
+            "/tmp/missing-ca-cert.pem"
+        }
 
         #[rstest]
         #[case("http://domain.com:8333", "http://domain.com:8333/")]
@@ -443,6 +496,67 @@ pub(crate) mod tests {
         fn test_build_client(#[case] url: &str, #[case] expected_url: &str) {
             let client = ReductClient::builder().url(url).build();
             assert_eq!(client.url(), expected_url);
+        }
+
+        #[rstest]
+        fn test_build_client_with_missing_ca_cert(missing_ca_cert_path: &str) {
+            let err = ReductClient::builder()
+                .url("https://domain.com:8333")
+                .ca_cert_path(missing_ca_cert_path)
+                .try_build()
+                .err()
+                .unwrap();
+
+            assert_eq!(err.status(), ErrorCode::Unknown);
+            assert!(err.to_string().contains(&format!(
+                "Failed to read CA certificate '{}'",
+                missing_ca_cert_path
+            )));
+        }
+
+        #[fixture]
+        fn ca_cert_pem() -> &'static str {
+            "-----BEGIN CERTIFICATE-----
+MIIBtjCCAVugAwIBAgITBmyf1XSXNmY/Owua2eiedgPySjAKBggqhkjOPQQDAjA5
+MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6b24g
+Um9vdCBDQSAzMB4XDTE1MDUyNjAwMDAwMFoXDTQwMDUyNjAwMDAwMFowOTELMAkG
+A1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJvb3Qg
+Q0EgMzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABCmXp8ZBf8ANm+gBG1bG8lKl
+ui2yEujSLtf6ycXYqm0fc4E7O5hrOXwzpcVOho6AF2hiRVd9RFgdszflZwjrZt6j
+QjBAMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgGGMB0GA1UdDgQWBBSr
+ttvXBp43rDCGB5Fwx5zEGbF4wDAKBggqhkjOPQQDAgNJADBGAiEA4IWSoxe3jfkr
+BqWTrBqYaGFy+uGh0PsceGCmQ5nFuMQCIQCcAu/xlJyzlvnrxir4tiz+OpAUFteM
+YyRIHN8wfdVoOw==
+-----END CERTIFICATE-----
+"
+        }
+
+        #[fixture]
+        fn ca_cert(ca_cert_pem: &str) -> TempCaCert {
+            let cert_path = std::env::temp_dir().join(format!(
+                "reduct-rs-test-ca-{}.pem",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+            fs::write(&cert_path, ca_cert_pem).unwrap();
+            TempCaCert(cert_path_to_str(&cert_path).to_string())
+        }
+
+        #[rstest]
+        fn test_build_client_with_ca_cert(ca_cert: TempCaCert) {
+            let client = ReductClient::builder()
+                .url("https://domain.com:8333")
+                .ca_cert_path(ca_cert.path())
+                .try_build();
+
+            assert!(client.is_ok());
+        }
+
+        fn cert_path_to_str(path: &Path) -> &str {
+            path.to_str()
+                .expect("temp certificate path must be valid UTF-8")
         }
     }
 
