@@ -96,6 +96,8 @@ impl Bucket {
 
         let query = if let Some(keys) = attachment_keys {
             let mut when = vec![json!({"&key": {"$cast": "string"}})];
+            // Escape "$"-prefixed keys so the ReductStore query engine treats
+            // them as literal values instead of operators such as $$system.
             let escaped_keys = keys
                 .into_iter()
                 .map(|key| {
