@@ -96,7 +96,19 @@ impl Bucket {
 
         let query = if let Some(keys) = attachment_keys {
             let mut when = vec![json!({"&key": {"$cast": "string"}})];
-            when.extend(keys.into_iter().map(Value::from));
+            // Escape "$"-prefixed keys so the ReductStore query engine treats
+            // them as literal values instead of operators such as $$system.
+            let escaped_keys = keys
+                .into_iter()
+                .map(|key| {
+                    if key.starts_with('$') {
+                        format!("${}", key)
+                    } else {
+                        key
+                    }
+                })
+                .collect::<Vec<_>>();
+            when.extend(escaped_keys.into_iter().map(Value::from));
             self.query(meta_entry.clone())
                 .when(json!({"$in": when}))
                 .send()
@@ -155,6 +167,7 @@ mod tests {
         HashMap::from([
             ("meta-1".to_string(), json!({"value": 1})),
             ("meta-2".to_string(), json!({"value": 2})),
+            ("$system".to_string(), json!({"value": "test"})),
         ])
     }
 
@@ -193,12 +206,38 @@ mod tests {
             .unwrap();
 
         bucket
-            .remove_attachments(ENTRY, Some(vec!["meta-1".to_string()]))
+            .remove_attachments(
+                ENTRY,
+                Some(vec!["meta-1".to_string(), "$system".to_string()]),
+            )
             .await
             .unwrap();
 
         let attachments = bucket.read_attachments(ENTRY).await.unwrap();
         assert_eq!(attachments, selected_after_remove);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_remove_system_attachment_only(
+        #[future] bucket: Bucket,
+        removable_attachments: HashMap<String, serde_json::Value>,
+    ) {
+        let bucket = bucket.await;
+        bucket
+            .write_attachments(ENTRY, removable_attachments)
+            .await
+            .unwrap();
+
+        bucket
+            .remove_attachments(ENTRY, Some(vec!["$system".to_string()]))
+            .await
+            .unwrap();
+
+        let attachments = bucket.read_attachments(ENTRY).await.unwrap();
+        assert!(!attachments.contains_key("$system"));
+        assert!(attachments.contains_key("meta-1"));
+        assert!(attachments.contains_key("meta-2"));
     }
 
     #[rstest]
