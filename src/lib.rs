@@ -8,6 +8,7 @@ mod client;
 mod http_client;
 mod record;
 mod replication;
+mod token;
 
 pub use bucket::Bucket;
 pub use client::ReductClient;
@@ -30,6 +31,7 @@ pub use reduct_base::msg::replication_api::{
 pub use reduct_base::msg::server_api::{BucketInfoList, Defaults, ServerInfo};
 pub use reduct_base::msg::status::ResourceStatus;
 pub use reduct_base::msg::token_api::{Permissions, Token};
+pub use token::{TokenCreateOptions, TokenInfo, TokenInfoList};
 pub use serde_json::json as condition;
 pub use serde_json::json as ext; // for readability
 pub use serde_json::Value as JsonValue;
