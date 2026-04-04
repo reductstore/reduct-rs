@@ -6,6 +6,7 @@
 use crate::bucket::BucketBuilder;
 use crate::http_client::HttpClient;
 use crate::replication::ReplicationBuilder;
+use crate::token::{TokenCreateOptions, TokenInfo, TokenInfoList};
 use crate::Bucket;
 use reduct_base::error::{ErrorCode, ReductError};
 use reduct_base::msg::replication_api::{
@@ -263,26 +264,53 @@ impl ReductClient {
             .await
     }
 
-    /// Create an access token
+    /// Get extended token info for the current user.
+    pub async fn me_info(&self) -> Result<TokenInfo> {
+        self.http_client
+            .send_and_receive_json::<(), TokenInfo>(Method::GET, "/me", None)
+            .await
+    }
+
+    /// Create an access token.
     ///
-    /// # Arguments
-    ///
-    /// * `name` - The name of the token
-    /// * `permissions` - The permissions of the token
-    ///
-    /// # Returns
-    ///
-    /// The token value or HttpError
+    /// Deprecated: use [`Self::create_token_with_options`] for full API support.
     pub async fn create_token(&self, name: &str, permissions: Permissions) -> Result<String> {
         let token = self
-            .http_client
-            .send_and_receive_json::<Permissions, TokenCreateResponse>(
-                Method::POST,
-                &format!("/tokens/{}", name),
-                Some(permissions),
+            .create_token_with_options(
+                name,
+                TokenCreateOptions {
+                    permissions,
+                    ..Default::default()
+                },
             )
             .await?;
         Ok(token.value)
+    }
+
+    /// Create an access token with extended options (`expires_at`, `ttl`, `ip_allowlist`).
+    pub async fn create_token_with_options(
+        &self,
+        name: &str,
+        options: TokenCreateOptions,
+    ) -> Result<TokenCreateResponse> {
+        self.http_client
+            .send_and_receive_json::<TokenCreateOptions, TokenCreateResponse>(
+                Method::POST,
+                &format!("/tokens/{}", name),
+                Some(options),
+            )
+            .await
+    }
+
+    /// Rotate an access token value and revoke the old one.
+    pub async fn rotate_token(&self, name: &str) -> Result<TokenCreateResponse> {
+        self.http_client
+            .send_and_receive_json::<(), TokenCreateResponse>(
+                Method::POST,
+                &format!("/tokens/{}/rotate", name),
+                None,
+            )
+            .await
     }
 
     /// Get an access token
@@ -297,6 +325,13 @@ impl ReductClient {
     pub async fn get_token(&self, name: &str) -> Result<Token> {
         self.http_client
             .send_and_receive_json::<(), Token>(Method::GET, &format!("/tokens/{}", name), None)
+            .await
+    }
+
+    /// Get extended access token info.
+    pub async fn get_token_info(&self, name: &str) -> Result<TokenInfo> {
+        self.http_client
+            .send_and_receive_json::<(), TokenInfo>(Method::GET, &format!("/tokens/{}", name), None)
             .await
     }
 
@@ -326,6 +361,15 @@ impl ReductClient {
         let list = self
             .http_client
             .send_and_receive_json::<(), TokenList>(Method::GET, "/tokens", None)
+            .await?;
+        Ok(list.tokens)
+    }
+
+    /// List all access tokens with extended fields.
+    pub async fn list_tokens_info(&self) -> Result<Vec<TokenInfo>> {
+        let list = self
+            .http_client
+            .send_and_receive_json::<(), TokenInfoList>(Method::GET, "/tokens", None)
             .await?;
         Ok(list.tokens)
     }
@@ -640,6 +684,14 @@ YyRIHN8wfdVoOw==
 
         #[rstest]
         #[tokio::test]
+        async fn test_me_info(#[future] client: ReductClient) {
+            let token = client.await.me_info().await.unwrap();
+            assert_eq!(token.name, "init-token");
+            assert!(token.permissions.unwrap().full_access);
+        }
+
+        #[rstest]
+        #[tokio::test]
         async fn test_create_token(#[future] client: ReductClient) {
             let token_value = client
                 .await
@@ -657,6 +709,31 @@ YyRIHN8wfdVoOw==
             assert!(token_value.starts_with("test-token"));
         }
 
+        #[cfg(feature = "test-api-119")]
+        #[rstest]
+        #[tokio::test]
+        async fn test_create_token_with_options(#[future] client: ReductClient) {
+            let token = client
+                .await
+                .create_token_with_options(
+                    "test-token-options",
+                    TokenCreateOptions {
+                        permissions: Permissions {
+                            full_access: false,
+                            read: vec!["test-bucket".to_string()],
+                            write: vec!["test-bucket".to_string()],
+                        },
+                        ttl: Some(3600),
+                        ip_allowlist: vec!["127.0.0.1".to_string()],
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap();
+
+            assert!(token.value.starts_with("test-token-options"));
+        }
+
         #[rstest]
         #[tokio::test]
         async fn test_get_token(#[future] client: ReductClient) {
@@ -670,11 +747,42 @@ YyRIHN8wfdVoOw==
             assert!(permissions.write.is_empty());
         }
 
+        #[cfg(feature = "test-api-119")]
+        #[rstest]
+        #[tokio::test]
+        async fn test_get_token_info(#[future] client: ReductClient) {
+            let token = client.await.get_token_info("init-token").await.unwrap();
+            assert_eq!(token.name, "init-token");
+            assert!(token.is_provisioned);
+        }
+
         #[rstest]
         #[tokio::test]
         async fn test_list_tokens(#[future] client: ReductClient) {
             let tokens = client.await.list_tokens().await.unwrap();
             assert!(!tokens.is_empty());
+        }
+
+        #[cfg(feature = "test-api-119")]
+        #[rstest]
+        #[tokio::test]
+        async fn test_list_tokens_info(#[future] client: ReductClient) {
+            let tokens = client.await.list_tokens_info().await.unwrap();
+            assert!(!tokens.is_empty());
+        }
+
+        #[cfg(feature = "test-api-119")]
+        #[rstest]
+        #[tokio::test]
+        async fn test_rotate_token(#[future] client: ReductClient) {
+            let client = client.await;
+            client
+                .create_token("test-token-rotate", Permissions::default())
+                .await
+                .unwrap();
+            let rotated = client.rotate_token("test-token-rotate").await.unwrap();
+            assert!(rotated.value.starts_with("test-token-rotate"));
+            client.delete_token("test-token-rotate").await.unwrap();
         }
 
         #[rstest]
