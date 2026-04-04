@@ -709,6 +709,7 @@ YyRIHN8wfdVoOw==
             assert!(token_value.starts_with("test-token"));
         }
 
+        #[cfg(feature = "test-api-119")]
         #[rstest]
         #[tokio::test]
         async fn test_create_token_with_options(#[future] client: ReductClient) {
@@ -746,6 +747,7 @@ YyRIHN8wfdVoOw==
             assert!(permissions.write.is_empty());
         }
 
+        #[cfg(feature = "test-api-119")]
         #[rstest]
         #[tokio::test]
         async fn test_get_token_info(#[future] client: ReductClient) {
@@ -761,6 +763,7 @@ YyRIHN8wfdVoOw==
             assert!(!tokens.is_empty());
         }
 
+        #[cfg(feature = "test-api-119")]
         #[rstest]
         #[tokio::test]
         async fn test_list_tokens_info(#[future] client: ReductClient) {
@@ -768,6 +771,7 @@ YyRIHN8wfdVoOw==
             assert!(!tokens.is_empty());
         }
 
+        #[cfg(feature = "test-api-119")]
         #[rstest]
         #[tokio::test]
         async fn test_rotate_token(#[future] client: ReductClient) {
