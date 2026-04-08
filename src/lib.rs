@@ -8,10 +8,9 @@ mod client;
 mod http_client;
 mod record;
 mod replication;
-mod token;
 
 pub use bucket::Bucket;
-pub use client::ReductClient;
+pub use client::{CreateTokenBuilder, ReductClient};
 pub use record::query::{QueryBuilder, RemoveQueryBuilder};
 pub use record::read_record::ReadRecordBuilder;
 pub use record::remove_record::RemoveRecordBuilder;
@@ -34,4 +33,3 @@ pub use reduct_base::msg::token_api::{Permissions, Token};
 pub use serde_json::json as condition;
 pub use serde_json::json as ext; // for readability
 pub use serde_json::Value as JsonValue;
-pub use token::{TokenCreateOptions, TokenInfo, TokenInfoList};
