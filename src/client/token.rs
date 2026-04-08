@@ -16,19 +16,18 @@ pub struct CreateTokenBuilder {
 }
 
 impl CreateTokenBuilder {
-    pub(super) fn new(
-        name: String,
-        permissions: Permissions,
-        http_client: Arc<HttpClient>,
-    ) -> Self {
+    pub(super) fn new(name: String, http_client: Arc<HttpClient>) -> Self {
         Self {
             name,
-            request: TokenCreateRequest {
-                permissions,
-                ..Default::default()
-            },
+            request: TokenCreateRequest::default(),
             http_client,
         }
+    }
+
+    /// Set token permissions.
+    pub fn permissions(mut self, permissions: Permissions) -> Self {
+        self.request.permissions = permissions;
+        self
     }
 
     /// Set the absolute expiration time for the token.
@@ -82,14 +81,18 @@ impl ReductClient {
 
     /// Create an access token.
     pub async fn create_token(&self, name: &str, permissions: Permissions) -> Result<String> {
-        let token = self.create_token_builder(name, permissions).send().await?;
+        let token = self
+            .create_token_builder(name)
+            .permissions(permissions)
+            .send()
+            .await?;
         Ok(token.value)
     }
 
     /// Create an access token with optional settings such as expiration, inactivity TTL,
     /// and IP allowlist.
-    pub fn create_token_builder(&self, name: &str, permissions: Permissions) -> CreateTokenBuilder {
-        CreateTokenBuilder::new(name.to_string(), permissions, Arc::clone(&self.http_client))
+    pub fn create_token_builder(&self, name: &str) -> CreateTokenBuilder {
+        CreateTokenBuilder::new(name.to_string(), Arc::clone(&self.http_client))
     }
 
     /// Rotate an access token value and revoke the old one.
@@ -196,14 +199,12 @@ mod tests {
     async fn test_create_token_builder(#[future] client: ReductClient) {
         let token = client
             .await
-            .create_token_builder(
-                "test-token-options",
-                Permissions {
-                    full_access: false,
-                    read: vec!["test-bucket".to_string()],
-                    write: vec!["test-bucket".to_string()],
-                },
-            )
+            .create_token_builder("test-token-options")
+            .permissions(Permissions {
+                full_access: false,
+                read: vec!["test-bucket".to_string()],
+                write: vec!["test-bucket".to_string()],
+            })
             .ttl(Duration::from_secs(3600))
             .ip_allowlist(vec!["127.0.0.1".to_string()])
             .send()
