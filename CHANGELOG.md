@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 1.19.0 - 2026-04-08
+
 ### Added
 
 - Add support for entry attachments, [PR-66](https://github.com/reductstore/reduct-rs/pull/66)
 - Add `ca_cert_path` option to `ReductClientBuilder`, [PR-69](https://github.com/reductstore/reduct-rs/pull/69)
 - Add token API v2 support with `create_token_with_options`, `rotate_token`, and extended token info methods (`me_info`, `get_token_info`, `list_tokens_info`), [PR-73](https://github.com/reductstore/reduct-rs/pull/73)
+
+### Changed
+
+- Replace `create_token_with_options` with `CreateTokenBuilder` and move token API code into `src/client/token.rs`, [PR-74](https://github.com/reductstore/reduct-rs/pull/74)
 
 ### Fixed
 
