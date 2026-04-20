@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolve query-link record index selectors to `record_entry` + `record_timestamp` while keeping legacy `index` for compatibility, [#76](https://github.com/reductstore/reduct-rs/issues/76)
 - Fix removing attachments with numeric keys, [PR-67](https://github.com/reductstore/reduct-rs/pull/67)
 - Fix removing attachments whose keys start with `$`, [#70](https://github.com/reductstore/reduct-rs/issues/70)
 
