@@ -7,7 +7,7 @@ use crate::http_client::HttpClient;
 use crate::Bucket;
 use chrono::{DateTime, Utc};
 use http::Method;
-use reduct_base::error::ReductError;
+use reduct_base::error::{ErrorCode, ReductError};
 use reduct_base::msg::entry_api::QueryEntry;
 use reduct_base::msg::query_link_api::{QueryLinkCreateRequest, QueryLinkCreateResponse};
 use std::sync::Arc;
@@ -15,6 +15,8 @@ use std::sync::Arc;
 pub struct CreateQueryLinkBuilder {
     entries: Vec<String>,
     request: QueryLinkCreateRequest,
+    legacy_index: u64,
+    index_explicit: bool,
     file_name: Option<String>,
     http_client: Arc<HttpClient>,
 }
@@ -30,6 +32,8 @@ impl CreateQueryLinkBuilder {
                 expire_at: Utc::now() + chrono::Duration::hours(24),
                 ..Default::default()
             },
+            legacy_index: 0,
+            index_explicit: false,
             file_name: None,
             http_client,
         }
@@ -43,7 +47,15 @@ impl CreateQueryLinkBuilder {
 
     /// Set the record index for the query link.
     pub fn index(mut self, index: u64) -> Self {
-        self.request.index = Some(index);
+        self.legacy_index = index;
+        self.index_explicit = true;
+        self
+    }
+
+    /// Set the exact record identity for the query link.
+    pub fn record(mut self, entry: &str, timestamp: u64) -> Self {
+        self.request.record_entry = Some(entry.to_string());
+        self.request.record_timestamp = Some(timestamp);
         self
     }
 
@@ -67,39 +79,82 @@ impl CreateQueryLinkBuilder {
 
     /// Send the create query link request.
     pub async fn send(self) -> Result<String, ReductError> {
-        let mut request = self.request;
+        let version = self.ensure_api_version().await?;
+        let mut request = self.request.clone();
+
         if self.entries.len() > 1 {
-            if let Some(version) = self.http_client.get_api_version().await {
-                if version.1 < 18 {
-                    return Err(ReductError::new(
-                        reduct_base::error::ErrorCode::InvalidRequest,
-                        "Multi-entry query links are not supported in API versions below v1.18",
-                    ));
-                }
+            if version.1 < 18 {
+                return Err(ReductError::new(
+                    ErrorCode::InvalidRequest,
+                    "Multi-entry query links are not supported in API versions below v1.18",
+                ));
             }
 
             request.query.entries = Some(self.entries.clone());
         }
 
+        if request.record_entry.is_some() ^ request.record_timestamp.is_some() {
+            return Err(ReductError::new(
+                ErrorCode::InvalidRequest,
+                "Both record_entry and record_timestamp must be provided",
+            ));
+        }
+
+        if request.record_entry.is_some() && self.index_explicit {
+            return Err(ReductError::new(
+                ErrorCode::InvalidRequest,
+                "record index cannot be used with explicit record identity",
+            ));
+        }
+
+        let legacy_index = if request.record_entry.is_some() {
+            None
+        } else {
+            Some(self.legacy_index)
+        };
+
+        let default_selector = legacy_index.or(request.record_timestamp).unwrap_or(0);
         let default_name = if self.entries.len() > 1 {
             request.bucket.clone()
         } else {
             request.entry.clone()
         };
-        let file_name = self.file_name.unwrap_or(format!(
-            "{}_{}.bin",
-            default_name,
-            request.index.unwrap_or(0)
-        ));
+        let file_name = self
+            .file_name
+            .unwrap_or(format!("{}_{}.bin", default_name, default_selector));
+        let mut payload = serde_json::to_value(&request).map_err(|e| {
+            ReductError::new(
+                ErrorCode::Unknown,
+                &format!("Failed to serialize query link request: {}", e),
+            )
+        })?;
+        if let Some(index) = legacy_index {
+            payload["index"] = serde_json::Value::from(index);
+        }
         let response: QueryLinkCreateResponse = self
             .http_client
             .send_and_receive_json(
                 Method::POST,
                 &format!("/links/{}", file_name),
-                Some(request),
+                Some(payload),
             )
             .await?;
         Ok(response.link)
+    }
+
+    async fn ensure_api_version(&self) -> Result<(u32, u32), ReductError> {
+        if let Some(version) = self.http_client.get_api_version().await {
+            return Ok(version);
+        }
+
+        let request = self.http_client.request(Method::HEAD, "/alive");
+        self.http_client.send_request(request).await?;
+        self.http_client.get_api_version().await.ok_or_else(|| {
+            ReductError::new(
+                ErrorCode::Unknown,
+                "Failed to determine ReductStore API version",
+            )
+        })
     }
 }
 
@@ -131,6 +186,11 @@ mod tests {
     use crate::Bucket;
     use reduct_base::msg::entry_api::QueryEntry;
     use rstest::rstest;
+
+    async fn api_minor(bucket: &Bucket) -> u32 {
+        bucket.info().await.unwrap();
+        bucket.http_client.get_api_version().await.unwrap().1
+    }
 
     #[rstest]
     #[tokio::test]
@@ -188,13 +248,31 @@ mod tests {
     async fn test_link_creation_with_index(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
         let link = bucket
-            .create_query_link("entry-1")
+            .create_query_link("entry-2")
             .index(1)
             .send()
             .await
             .unwrap();
         let body = reqwest::get(&link).await.unwrap().text().await.unwrap();
-        assert_eq!(body, r#"{"detail": "Record number out of range"}"#)
+        assert_eq!(body, "0");
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_link_creation_with_explicit_record_identity(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        if api_minor(&bucket).await < 19 {
+            return;
+        }
+
+        let link = bucket
+            .create_query_link("entry-2")
+            .record("entry-2", 3000)
+            .send()
+            .await
+            .unwrap();
+        let body = reqwest::get(&link).await.unwrap().text().await.unwrap();
+        assert_eq!(body, "0");
     }
 
     #[rstest]

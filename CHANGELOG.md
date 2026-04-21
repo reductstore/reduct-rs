@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Update query link creation for record identity API by resolving legacy record index to `record_entry`/`record_timestamp` while preserving backward compatibility, [#76](https://github.com/reductstore/reduct-rs/issues/76)
+
 ## 1.19.0 - 2026-04-08
 
 ### Added
