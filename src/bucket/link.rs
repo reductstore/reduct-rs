@@ -100,18 +100,21 @@ impl CreateQueryLinkBuilder {
             ));
         }
 
-        if request.record_entry.is_some() && self.index_explicit {
-            return Err(ReductError::new(
-                ErrorCode::InvalidRequest,
-                "record index cannot be used with explicit record identity",
-            ));
-        }
-
-        let legacy_index = if request.record_entry.is_some() {
+        let has_record_identity = request.record_entry.is_some();
+        let legacy_index = if self.index_explicit {
+            Some(self.legacy_index)
+        } else if has_record_identity {
             None
         } else {
-            Some(self.legacy_index)
+            Some(0)
         };
+
+        if version.1 >= 19 && !has_record_identity {
+            return Err(ReductError::new(
+                ErrorCode::InvalidRequest,
+                "record entry and timestamp must be provided for ReductStore API v1.19+; use .record(entry, timestamp)",
+            ));
+        }
 
         let default_selector = legacy_index.or(request.record_timestamp).unwrap_or(0);
         let default_name = if self.entries.len() > 1 {
@@ -184,13 +187,9 @@ impl Bucket {
 mod tests {
     use crate::bucket::tests::bucket;
     use crate::Bucket;
+    use reduct_base::error::ErrorCode;
     use reduct_base::msg::entry_api::QueryEntry;
     use rstest::rstest;
-
-    async fn api_minor(bucket: &Bucket) -> u32 {
-        bucket.info().await.unwrap();
-        bucket.http_client.get_api_version().await.unwrap().1
-    }
 
     #[rstest]
     #[tokio::test]
@@ -198,6 +197,7 @@ mod tests {
         let bucket: Bucket = bucket.await;
         let link = bucket
             .create_query_link("entry-1")
+            .record("entry-1", 1000)
             .expire_at(chrono::Utc::now() + chrono::Duration::hours(1))
             .send()
             .await
@@ -213,6 +213,7 @@ mod tests {
         let bucket: Bucket = bucket.await;
         let link = bucket
             .create_query_link("entry-1")
+            .record("entry-1", 1000)
             .query(QueryEntry {
                 start: Some(0),
                 ..Default::default()
@@ -230,6 +231,7 @@ mod tests {
         let bucket: Bucket = bucket.await;
         let link = bucket
             .create_query_link(&["entry-1", "entry-2"])
+            .record("entry-1", 1000)
             .query(QueryEntry {
                 start: Some(0),
                 ..Default::default()
@@ -244,26 +246,10 @@ mod tests {
     }
 
     #[rstest]
-    #[tokio::test]
-    async fn test_link_creation_with_index(#[future] bucket: Bucket) {
-        let bucket: Bucket = bucket.await;
-        let link = bucket
-            .create_query_link("entry-2")
-            .index(1)
-            .send()
-            .await
-            .unwrap();
-        let body = reqwest::get(&link).await.unwrap().text().await.unwrap();
-        assert_eq!(body, "0");
-    }
-
-    #[rstest]
+    #[cfg(feature = "test-api-119")]
     #[tokio::test]
     async fn test_link_creation_with_explicit_record_identity(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
-        if api_minor(&bucket).await < 19 {
-            return;
-        }
 
         let link = bucket
             .create_query_link("entry-2")
@@ -281,6 +267,7 @@ mod tests {
         let bucket: Bucket = bucket.await;
         let link = bucket
             .create_query_link("entry-1")
+            .record("entry-1", 1000)
             .expire_at(chrono::Utc::now() - chrono::Duration::hours(1))
             .send()
             .await
@@ -295,10 +282,27 @@ mod tests {
         let bucket: Bucket = bucket.await;
         let link = bucket
             .create_query_link("entry-1")
+            .record("entry-1", 1000)
             .file_name("my-link.bin")
             .send()
             .await
             .unwrap();
         assert!(link.contains("links/my-link.bin?"));
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_link_creation_requires_record_identity_for_api_19(#[future] bucket: Bucket) {
+        let bucket: Bucket = bucket.await;
+        let error = bucket
+            .create_query_link("entry-1")
+            .send()
+            .await
+            .unwrap_err();
+        assert_eq!(error.status(), ErrorCode::InvalidRequest);
+        assert_eq!(
+            error.message(),
+            "record entry and timestamp must be provided for ReductStore API v1.19+; use .record(entry, timestamp)"
+        );
     }
 }
