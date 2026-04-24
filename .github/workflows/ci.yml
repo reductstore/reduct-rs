@@ -16,6 +16,8 @@ on:
       - README.md
       - CHANGELOG.md
 
+permissions: read-all
+
 env:
   REGISTRY_IMAGE: reduct/store
   MINIMAL_RUST_VERSION: ${{ vars.MINIMAL_RUST_VERSION }}
