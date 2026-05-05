@@ -4,11 +4,20 @@
 //    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::{Bucket, RecordBuilder};
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine;
 use futures_util::{pin_mut, StreamExt};
 use reduct_base::error::{ErrorCode, ReductError};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::SystemTime;
+
+fn is_json_content_type(content_type: &str) -> bool {
+    let ct = content_type.split(';').next().unwrap_or("").trim();
+    ct.eq_ignore_ascii_case("application/json")
+        || ct.eq_ignore_ascii_case("text/json")
+        || ct.to_ascii_lowercase().ends_with("+json")
+}
 
 impl Bucket {
     /// Write entry attachments.
@@ -19,6 +28,7 @@ impl Bucket {
         &self,
         entry: &str,
         attachments: HashMap<String, Value>,
+        content_type: Option<&str>,
     ) -> Result<(), ReductError> {
         let meta_entry = format!("{entry}/$meta");
         let mut batch = self.write_record_batch();
@@ -26,24 +36,42 @@ impl Bucket {
             return Ok(());
         }
 
+        let ct = content_type.unwrap_or("application/json");
+        let is_json = is_json_content_type(ct);
+
         let mut timestamp_us = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("SystemTime must be after UNIX_EPOCH")
             .as_micros() as u64;
 
         for (key, content) in attachments {
-            let payload = serde_json::to_vec(&content).map_err(|err| {
-                ReductError::new(
-                    ErrorCode::UnprocessableEntity,
-                    &format!("failed to serialize attachment '{key}': {err}"),
-                )
-            })?;
+            let payload = if is_json {
+                serde_json::to_vec(&content).map_err(|err| {
+                    ReductError::new(
+                        ErrorCode::UnprocessableEntity,
+                        &format!("failed to serialize attachment '{key}': {err}"),
+                    )
+                })?
+            } else {
+                let b64 = content.as_str().ok_or_else(|| {
+                    ReductError::new(
+                        ErrorCode::UnprocessableEntity,
+                        &format!("non-JSON attachment '{key}' must be a base64-encoded string"),
+                    )
+                })?;
+                BASE64_STANDARD.decode(b64).map_err(|err| {
+                    ReductError::new(
+                        ErrorCode::UnprocessableEntity,
+                        &format!("failed to decode base64 for attachment '{key}': {err}"),
+                    )
+                })?
+            };
             batch = batch.add_record(
                 RecordBuilder::new()
                     .entry(meta_entry.clone())
                     .timestamp_us(timestamp_us)
                     .data(payload)
-                    .content_type("application/json")
+                    .content_type(ct)
                     .add_label("key".to_string(), key)
                     .build(),
             );
@@ -69,14 +97,19 @@ impl Bucket {
             let record = record?;
             let key = record.labels().get("key").cloned();
             if let Some(key) = key {
+                let ct = record.content_type().to_string();
                 let content = record.bytes().await?;
-                let metadata = serde_json::from_slice(&content).map_err(|err| {
-                    ReductError::new(
-                        ErrorCode::UnprocessableEntity,
-                        &format!("failed to decode attachment '{key}': {err}"),
-                    )
-                })?;
-                attachments.insert(key.clone(), metadata);
+                let value = if is_json_content_type(&ct) {
+                    serde_json::from_slice(&content).map_err(|err| {
+                        ReductError::new(
+                            ErrorCode::UnprocessableEntity,
+                            &format!("failed to decode attachment '{key}': {err}"),
+                        )
+                    })?
+                } else {
+                    Value::String(BASE64_STANDARD.encode(&content))
+                };
+                attachments.insert(key.clone(), value);
             }
         }
 
@@ -184,7 +217,7 @@ mod tests {
     ) {
         let bucket = bucket.await;
         bucket
-            .write_attachments(ENTRY, complex_attachments.clone())
+            .write_attachments(ENTRY, complex_attachments.clone(), None)
             .await
             .unwrap();
 
@@ -201,7 +234,7 @@ mod tests {
     ) {
         let bucket = bucket.await;
         bucket
-            .write_attachments(ENTRY, removable_attachments)
+            .write_attachments(ENTRY, removable_attachments, None)
             .await
             .unwrap();
 
@@ -225,7 +258,7 @@ mod tests {
     ) {
         let bucket = bucket.await;
         bucket
-            .write_attachments(ENTRY, removable_attachments)
+            .write_attachments(ENTRY, removable_attachments, None)
             .await
             .unwrap();
 
@@ -254,6 +287,7 @@ mod tests {
                     ),
                     ("2.5".to_string(), json!({"name": "test"})),
                 ]),
+                None,
             )
             .await
             .unwrap();
@@ -287,7 +321,7 @@ mod tests {
     ) {
         let bucket = bucket.await;
         bucket
-            .write_attachments(ENTRY, removable_attachments)
+            .write_attachments(ENTRY, removable_attachments, None)
             .await
             .unwrap();
 
@@ -295,5 +329,50 @@ mod tests {
 
         let attachments = bucket.read_attachments(ENTRY).await.unwrap();
         assert_eq!(attachments, HashMap::new());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_write_read_non_json_attachment(#[future] bucket: Bucket) {
+        use super::BASE64_STANDARD;
+        use base64::Engine;
+
+        let bucket = bucket.await;
+        let raw_bytes: Vec<u8> = vec![0xDE, 0xAD, 0xBE, 0xEF];
+        let encoded = BASE64_STANDARD.encode(&raw_bytes);
+
+        bucket
+            .write_attachments(
+                ENTRY,
+                HashMap::from([(
+                    "binary-data".to_string(),
+                    serde_json::Value::String(encoded.clone()),
+                )]),
+                Some("application/octet-stream"),
+            )
+            .await
+            .unwrap();
+
+        let attachments = bucket.read_attachments(ENTRY).await.unwrap();
+        assert_eq!(
+            attachments.get("binary-data"),
+            Some(&serde_json::Value::String(encoded))
+        );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_write_attachments_default_json(
+        #[future] bucket: Bucket,
+        complex_attachments: HashMap<String, serde_json::Value>,
+    ) {
+        let bucket = bucket.await;
+        bucket
+            .write_attachments(ENTRY, complex_attachments.clone(), None)
+            .await
+            .unwrap();
+
+        let attachments = bucket.read_attachments(ENTRY).await.unwrap();
+        assert_eq!(attachments, complex_attachments);
     }
 }
