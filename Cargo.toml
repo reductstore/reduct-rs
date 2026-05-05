@@ -24,6 +24,7 @@ crate-type = ["lib"]
 
 [dependencies]
 reduct-base = "1.19.2"
+base64 = "0.22"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "stream", "cookies"] }
