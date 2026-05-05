@@ -335,6 +335,7 @@ mod tests {
     #[tokio::test]
     async fn test_write_read_non_json_attachment(#[future] bucket: Bucket) {
         use super::BASE64_STANDARD;
+        use base64::Engine;
 
         let bucket = bucket.await;
         let raw_bytes: Vec<u8> = vec![0xDE, 0xAD, 0xBE, 0xEF];
