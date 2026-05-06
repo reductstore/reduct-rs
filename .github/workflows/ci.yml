@@ -56,7 +56,7 @@ jobs:
           --env RS_LICENSE_PATH=/misc/lic.key -d reduct/store:${{ matrix.reductstore_version }}
 
       - name: Use cache for Cargo
-        uses: runs-on/cache@v4
+        uses: runs-on/cache@bd330c5a5f6cbb837823ee25864f3c71a211c2e3 # v5.0.5
         with:
           path: |
             ~/.cargo/bin/
@@ -101,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
           toolchain: ${{ env.MINIMAL_RUST_VERSION }}
       - name: Dry run publish reduct-rs
@@ -133,10 +133,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
           toolchain: ${{ env.MINIMAL_RUST_VERSION }}
-      - uses: arduino/setup-protoc@v1
+      - uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b # v3.0.0
         with:
           version: '3.x'
           repo-token: ${{ secrets.ACTION_GITHUB_TOKEN }}
