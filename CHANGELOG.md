@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Support non-JSON content types in `write_attachments` and `read_attachments`, [PR-83](https://github.com/reductstore/reduct-rs/pull/83)
-
 ### Changed
 
 - Pin third-party GitHub Actions in CI workflows by commit SHA (`runs-on/cache`, `dtolnay/rust-toolchain`, `arduino/setup-protoc`), [PR-84](https://github.com/reductstore/reduct-rs/pull/84)
