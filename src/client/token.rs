@@ -193,7 +193,7 @@ mod tests {
         assert!(token_value.starts_with("test-token"));
     }
 
-    #[cfg(feature = "test-api-119")]
+    #[cfg(feature = "test-api-120")]
     #[rstest]
     #[tokio::test]
     async fn test_create_token_builder(#[future] client: ReductClient) {
@@ -234,7 +234,7 @@ mod tests {
         assert!(!tokens.is_empty());
     }
 
-    #[cfg(feature = "test-api-119")]
+    #[cfg(feature = "test-api-120")]
     #[rstest]
     #[tokio::test]
     async fn test_rotate_token(#[future] client: ReductClient) {

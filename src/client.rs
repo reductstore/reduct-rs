@@ -834,6 +834,7 @@ YyRIHN8wfdVoOw==
         }
     }
 
+    #[cfg(feature = "test-api-120")]
     mod lifecycle_api {
         use super::*;
         use crate::condition;

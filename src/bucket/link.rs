@@ -246,7 +246,7 @@ mod tests {
     }
 
     #[rstest]
-    #[cfg(feature = "test-api-119")]
+    #[cfg(feature = "test-api-120")]
     #[tokio::test]
     async fn test_link_creation_with_explicit_record_identity(#[future] bucket: Bucket) {
         let bucket: Bucket = bucket.await;
