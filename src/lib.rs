@@ -6,7 +6,6 @@
 mod bucket;
 mod client;
 mod http_client;
-mod lifecycle;
 mod record;
 mod replication;
 
