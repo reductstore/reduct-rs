@@ -141,6 +141,7 @@ impl Bucket {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use crate::bucket::tests::bucket;
     use crate::Bucket;
