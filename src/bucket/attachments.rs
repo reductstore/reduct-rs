@@ -141,7 +141,7 @@ impl Bucket {
     }
 }
 
-#[cfg(all(test, feature = "test-api-119"))]
+#[cfg(test)]
 mod tests {
     use crate::bucket::tests::bucket;
     use crate::Bucket;

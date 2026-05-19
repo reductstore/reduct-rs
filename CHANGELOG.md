@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add lifecycle policy API support, [PR-86](https://github.com/reductstore/reduct-rs/pull/86)
 - Pin third-party GitHub Actions in CI workflows by commit SHA (`runs-on/cache`, `dtolnay/rust-toolchain`, `arduino/setup-protoc`), [PR-84](https://github.com/reductstore/reduct-rs/pull/84)
 
 ## 1.19.1 - 2026-04-21

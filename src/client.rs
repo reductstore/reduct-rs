@@ -17,6 +17,7 @@ use reqwest::{Certificate, Method, Url};
 use std::sync::Arc;
 use std::time::Duration;
 
+mod lifecycle;
 mod token;
 
 pub use token::CreateTokenBuilder;
@@ -742,6 +743,14 @@ YyRIHN8wfdVoOw==
         for replication in client.list_replications().await.unwrap() {
             if replication.name.starts_with("test-replication") {
                 client.delete_replication(&replication.name).await.unwrap();
+            }
+        }
+
+        if let Ok(lifecycles) = client.list_lifecycles().await {
+            for lifecycle in lifecycles {
+                if lifecycle.name.starts_with("test-lifecycle") {
+                    client.delete_lifecycle(&lifecycle.name).await.unwrap();
+                }
             }
         }
 

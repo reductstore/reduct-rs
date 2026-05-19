@@ -23,6 +23,10 @@ pub use record::{Labels, Record, RecordBuilder, RecordStream};
 pub use reduct_base::error::{ErrorCode, ReductError};
 pub use reduct_base::msg::bucket_api::{BucketInfo, BucketSettings, FullBucketInfo, QuotaType};
 pub use reduct_base::msg::entry_api::EntryInfo;
+pub use reduct_base::msg::lifecycle_api::{
+    FullLifecycleInfo, LifecycleInfo, LifecycleList, LifecycleMode, LifecycleModePayload,
+    LifecycleSettings, LifecycleType,
+};
 pub use reduct_base::msg::replication_api::{
     FullReplicationInfo, ReplicationInfo, ReplicationList, ReplicationMode, ReplicationModePayload,
     ReplicationSettings,
