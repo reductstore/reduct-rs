@@ -54,13 +54,13 @@ impl LifecycleBuilder {
         self
     }
 
-    /// Set the maximum record age.
+    /// Set the record age threshold.
     ///
     /// # Arguments
     ///
-    /// * `max_age` - Maximum age, e.g. "30d", "24h", or "3600s".
-    pub fn max_age(mut self, max_age: &str) -> Self {
-        self.settings.max_age = max_age.to_string();
+    /// * `older_than` - Age threshold, e.g. "30d", "24h", or "3600s".
+    pub fn older_than(mut self, older_than: &str) -> Self {
+        self.settings.older_than = older_than.to_string();
         self
     }
 
@@ -176,7 +176,7 @@ impl ReductClient {
     ///         .lifecycle_type(LifecycleType::Delete)
     ///         .bucket("test-bucket-1")
     ///         .entries(vec!["entry-*".to_string()])
-    ///         .max_age("1h")
+    ///         .older_than("1h")
     ///         .interval("10m")
     ///         .when(condition!({"$eq": ["&label", 1]}))
     ///         .mode(LifecycleMode::DryRun)
@@ -259,12 +259,11 @@ mod tests {
         let client = client.await;
         client
             .create_lifecycle("test-lifecycle")
-            .lifecycle_type(settings.lifecycle_type)
+            .lifecycle_type(LifecycleType::Compress)
             .bucket(settings.bucket.as_str())
             .entries(settings.entries.clone())
-            .max_age(settings.max_age.as_str())
+            .older_than(settings.older_than.as_str())
             .interval(settings.interval.as_str())
-            .when(settings.when.unwrap())
             .mode(settings.mode)
             .send()
             .await
@@ -305,7 +304,7 @@ mod tests {
             .await
             .unwrap();
 
-        settings.max_age = "2h".to_string();
+        settings.older_than = "2h".to_string();
         settings.mode = LifecycleMode::Disabled;
 
         client
@@ -385,7 +384,7 @@ mod tests {
             lifecycle_type: LifecycleType::Delete,
             bucket: "test-bucket-1".to_string(),
             entries: vec![],
-            max_age: "1h".to_string(),
+            older_than: "1h".to_string(),
             interval: "10m".to_string(),
             when: Some(condition!({"$eq": ["&label", 1]})),
             mode: LifecycleMode::Enabled,

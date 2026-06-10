@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add lifecycle `compress` action support and rename lifecycle age field from `max_age` to `older_than` to match the ReductStore API, [PR-88](https://github.com/reductstore/reduct-rs/pull/88)
 - Add lifecycle policy API support, [PR-86](https://github.com/reductstore/reduct-rs/pull/86)
 - Pin third-party GitHub Actions in CI workflows by commit SHA (`runs-on/cache`, `dtolnay/rust-toolchain`, `arduino/setup-protoc`), [PR-84](https://github.com/reductstore/reduct-rs/pull/84)
 
