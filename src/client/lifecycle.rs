@@ -264,7 +264,6 @@ mod tests {
             .entries(settings.entries.clone())
             .older_than(settings.older_than.as_str())
             .interval(settings.interval.as_str())
-            .when(settings.when.unwrap())
             .mode(settings.mode)
             .send()
             .await
