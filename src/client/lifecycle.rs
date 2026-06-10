@@ -382,7 +382,7 @@ mod tests {
     #[fixture]
     fn settings() -> LifecycleSettings {
         LifecycleSettings {
-            lifecycle_type: LifecycleType::Compress,
+            lifecycle_type: LifecycleType::Delete,
             bucket: "test-bucket-1".to_string(),
             entries: vec![],
             older_than: "1h".to_string(),
