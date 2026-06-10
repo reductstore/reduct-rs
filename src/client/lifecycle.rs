@@ -262,7 +262,7 @@ mod tests {
             .lifecycle_type(settings.lifecycle_type)
             .bucket(settings.bucket.as_str())
             .entries(settings.entries.clone())
-            .max_age(settings.max_age.as_str())
+            .older_than(settings.older_than.as_str())
             .interval(settings.interval.as_str())
             .when(settings.when.unwrap())
             .mode(settings.mode)
