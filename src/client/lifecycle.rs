@@ -259,7 +259,7 @@ mod tests {
         let client = client.await;
         client
             .create_lifecycle("test-lifecycle")
-            .lifecycle_type(settings.lifecycle_type)
+            .lifecycle_type(LifecycleType::Compress)
             .bucket(settings.bucket.as_str())
             .entries(settings.entries.clone())
             .older_than(settings.older_than.as_str())
