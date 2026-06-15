@@ -8,6 +8,88 @@ use reqwest::Method;
 use serde_json::Value;
 use std::sync::Arc;
 
+#[cfg(test)]
+mod serde_tests {
+    use crate::{
+        FullLifecycleInfo, LifecycleInfo, LifecycleMode, LifecycleSettings, LifecycleType,
+    };
+    use chrono::{TimeZone, Utc};
+
+    #[test]
+    fn lifecycle_info_deserializes_type_and_last_run() {
+        let info: LifecycleInfo = serde_json::from_str(
+            r#"{
+                "name": "test-lifecycle",
+                "is_provisioned": true,
+                "is_running": false,
+                "type": "compress",
+                "mode": "enabled",
+                "last_run": "2026-06-15T07:02:25Z"
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(info.lifecycle_type, LifecycleType::Compress);
+        assert_eq!(info.mode, LifecycleMode::Enabled);
+        assert_eq!(
+            info.last_run,
+            Some(
+                Utc.with_ymd_and_hms(2026, 6, 15, 7, 2, 25)
+                    .single()
+                    .unwrap()
+            )
+        );
+    }
+
+    #[test]
+    fn full_lifecycle_info_deserializes_with_datetime_last_run() {
+        let lifecycle: FullLifecycleInfo = serde_json::from_str(
+            r#"{
+                "info": {
+                    "name": "test-lifecycle",
+                    "is_provisioned": true,
+                    "is_running": false,
+                    "type": "delete",
+                    "mode": "dry_run",
+                    "last_run": "2026-06-15T07:02:25Z"
+                },
+                "settings": {
+                    "type": "delete",
+                    "bucket": "test-bucket",
+                    "entries": ["entry-*"],
+                    "older_than": "1h",
+                    "interval": "10m",
+                    "mode": "dry_run"
+                }
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(lifecycle.info.lifecycle_type, LifecycleType::Delete);
+        assert_eq!(lifecycle.info.mode, LifecycleMode::DryRun);
+        assert_eq!(
+            lifecycle.info.last_run,
+            Some(
+                Utc.with_ymd_and_hms(2026, 6, 15, 7, 2, 25)
+                    .single()
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            lifecycle.settings,
+            LifecycleSettings {
+                lifecycle_type: LifecycleType::Delete,
+                bucket: "test-bucket".to_string(),
+                entries: vec!["entry-*".to_string()],
+                older_than: "1h".to_string(),
+                interval: "10m".to_string(),
+                when: None,
+                mode: LifecycleMode::DryRun,
+            }
+        );
+    }
+}
+
 /// Lifecycle builder.
 pub struct LifecycleBuilder {
     name: String,
