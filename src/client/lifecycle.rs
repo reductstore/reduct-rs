@@ -246,10 +246,17 @@ mod tests {
     use crate::condition;
     use rstest::{fixture, rstest};
 
+    fn test_lifecycles(lifecycles: Vec<LifecycleInfo>) -> Vec<LifecycleInfo> {
+        lifecycles
+            .into_iter()
+            .filter(|lifecycle| lifecycle.name.starts_with("test-lifecycle"))
+            .collect()
+    }
+
     #[rstest]
     #[tokio::test]
     async fn test_list_lifecycles(#[future] client: ReductClient) {
-        let lifecycles = client.await.list_lifecycles().await.unwrap();
+        let lifecycles = test_lifecycles(client.await.list_lifecycles().await.unwrap());
         assert!(lifecycles.is_empty());
     }
 
@@ -268,8 +275,11 @@ mod tests {
             .send()
             .await
             .unwrap();
-        let lifecycles = client.list_lifecycles().await.unwrap();
+        let lifecycles = test_lifecycles(client.list_lifecycles().await.unwrap());
         assert_eq!(lifecycles.len(), 1);
+        assert_eq!(lifecycles[0].lifecycle_type, LifecycleType::Compress);
+        assert_eq!(lifecycles[0].mode, settings.mode);
+        assert!(lifecycles[0].last_run.is_none());
     }
 
     #[rstest]
@@ -286,7 +296,9 @@ mod tests {
         let lifecycle = client.get_lifecycle("test-lifecycle").await.unwrap();
 
         assert_eq!(lifecycle.info.name, "test-lifecycle");
+        assert_eq!(lifecycle.info.lifecycle_type, settings.lifecycle_type);
         assert_eq!(lifecycle.info.mode, settings.mode);
+        assert!(lifecycle.info.last_run.is_none());
         assert_eq!(lifecycle.settings, settings);
     }
 
@@ -374,7 +386,7 @@ mod tests {
 
         client.delete_lifecycle("test-lifecycle").await.unwrap();
 
-        let lifecycles = client.list_lifecycles().await.unwrap();
+        let lifecycles = test_lifecycles(client.list_lifecycles().await.unwrap());
         assert!(lifecycles.is_empty());
     }
 
