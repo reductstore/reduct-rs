@@ -707,7 +707,7 @@ YyRIHN8wfdVoOw==
             }
         }
 
-        #[cfg(feature = "test-api-120")]
+        #[cfg(feature = "test-api-121")]
         #[rstest]
         #[tokio::test]
         async fn test_replication_dst_prefix(
