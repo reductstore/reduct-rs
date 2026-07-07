@@ -79,6 +79,16 @@ impl ReplicationBuilder {
         self
     }
 
+    /// Set the destination entry prefix.
+    ///
+    /// # Arguments
+    ///
+    /// * `prefix` - Prefix to add to destination entry names.
+    pub fn dst_prefix(mut self, prefix: &str) -> Self {
+        self.settings.dst_prefix = prefix.to_string();
+        self
+    }
+
     /// Set the replication conditional query.
     ///
     /// # Arguments

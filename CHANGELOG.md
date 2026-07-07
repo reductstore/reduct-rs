@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add replication destination prefix support, [PR-94](https://github.com/reductstore/reduct-rs/pull/94)
+
 ## 1.20.0 - 2026-06-17
 
 ### Added

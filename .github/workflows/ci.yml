@@ -40,7 +40,7 @@ jobs:
         reductstore_version: [ "main", "latest" ]
         include:
           - reductstore_version: main
-            features: "default,test-api-120"
+            features: "default,test-api-121"
           - reductstore_version: latest
             features: "default"
     needs:
