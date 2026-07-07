@@ -5,7 +5,7 @@
 
 use crate::bucket::BucketBuilder;
 use crate::http_client::HttpClient;
-use crate::replication::ReplicationBuilder;
+use crate::replication::{ReplicationBuilder, ReplicationSettingsRequest};
 use crate::Bucket;
 use reduct_base::error::{ErrorCode, ReductError};
 use reduct_base::msg::replication_api::{
@@ -342,7 +342,11 @@ impl ReductClient {
         settings: ReplicationSettings,
     ) -> Result<()> {
         self.http_client
-            .send_json(Method::PUT, &format!("/replications/{}", name), settings)
+            .send_json(
+                Method::PUT,
+                &format!("/replications/{}", name),
+                ReplicationSettingsRequest::from(&settings),
+            )
             .await
     }
 
@@ -580,6 +584,7 @@ YyRIHN8wfdVoOw==
                 .dst_host(settings.dst_host.as_str())
                 .dst_token(settings.dst_token.unwrap_or_default().as_str())
                 .entries(settings.entries.clone())
+                .dst_prefix(settings.dst_prefix.as_str())
                 .when(settings.when.unwrap())
                 .send()
                 .await
@@ -697,13 +702,48 @@ YyRIHN8wfdVoOw==
                 dst_host: "http://127.0.0.1:8383".to_string(),
                 dst_token: std::env::var("RS_API_TOKEN").ok(),
                 entries: vec![],
+                dst_prefix: String::new(),
                 include: Labels::default(),
                 exclude: Labels::default(),
-                each_s: Some(1.0),
                 each_n: Some(1),
                 when: Some(condition!({"$eq": ["&label", 1]})),
                 mode: ReplicationMode::Enabled,
             }
+        }
+
+        #[cfg(feature = "test-api-120")]
+        #[rstest]
+        #[tokio::test]
+        async fn test_replication_dst_prefix(
+            #[future] client: ReductClient,
+            mut settings: ReplicationSettings,
+        ) {
+            let client = client.await;
+            settings.dst_prefix = "robot-1".to_string();
+            client
+                .create_replication("test-replication-prefix")
+                .set_settings(settings.clone())
+                .send()
+                .await
+                .unwrap();
+
+            let replication = client
+                .get_replication("test-replication-prefix")
+                .await
+                .unwrap();
+            assert_eq!(replication.settings.dst_prefix, "robot-1");
+
+            settings.dst_prefix = "line-a".to_string();
+            client
+                .update_replication("test-replication-prefix", settings.clone())
+                .await
+                .unwrap();
+
+            let replication = client
+                .get_replication("test-replication-prefix")
+                .await
+                .unwrap();
+            assert_eq!(replication.settings.dst_prefix, "line-a");
         }
     }
 
