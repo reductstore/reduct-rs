@@ -5,7 +5,7 @@
 
 use crate::bucket::BucketBuilder;
 use crate::http_client::HttpClient;
-use crate::replication::{ReplicationBuilder, ReplicationSettingsRequest};
+use crate::replication::ReplicationBuilder;
 use crate::Bucket;
 use reduct_base::error::{ErrorCode, ReductError};
 use reduct_base::msg::replication_api::{
@@ -342,11 +342,7 @@ impl ReductClient {
         settings: ReplicationSettings,
     ) -> Result<()> {
         self.http_client
-            .send_json(
-                Method::PUT,
-                &format!("/replications/{}", name),
-                ReplicationSettingsRequest::from(&settings),
-            )
+            .send_json(Method::PUT, &format!("/replications/{}", name), settings)
             .await
     }
 
