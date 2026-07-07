@@ -239,7 +239,7 @@ impl ReductClient {
     }
 }
 
-#[cfg(all(test, feature = "test-api-121"))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::client::tests::client;
