@@ -557,7 +557,9 @@ YyRIHN8wfdVoOw==
         use super::*;
         use crate::condition;
         use reduct_base::msg::diagnostics::Diagnostics;
-        use reduct_base::msg::replication_api::{ReplicationMode, ReplicationSettings};
+        use reduct_base::msg::replication_api::{
+            ReplicationCompression, ReplicationMode, ReplicationSettings,
+        };
 
         #[rstest]
         #[tokio::test]
@@ -704,6 +706,7 @@ YyRIHN8wfdVoOw==
                 each_n: Some(1),
                 when: Some(condition!({"$eq": ["&label", 1]})),
                 mode: ReplicationMode::Enabled,
+                compression: ReplicationCompression::None,
             }
         }
 
@@ -740,6 +743,50 @@ YyRIHN8wfdVoOw==
                 .await
                 .unwrap();
             assert_eq!(replication.settings.dst_prefix, "line-a");
+        }
+
+        #[cfg(feature = "test-api-121")]
+        #[rstest]
+        #[tokio::test]
+        async fn test_replication_compression(
+            #[future] client: ReductClient,
+            mut settings: ReplicationSettings,
+        ) {
+            let client = client.await;
+            client
+                .create_replication("test-replication-compression")
+                .src_bucket(settings.src_bucket.as_str())
+                .dst_bucket(settings.dst_bucket.as_str())
+                .dst_host(settings.dst_host.as_str())
+                .dst_token(settings.dst_token.clone().unwrap_or_default().as_str())
+                .compression(ReplicationCompression::Zstd)
+                .send()
+                .await
+                .unwrap();
+
+            let replication = client
+                .get_replication("test-replication-compression")
+                .await
+                .unwrap();
+            assert_eq!(
+                replication.settings.compression,
+                ReplicationCompression::Zstd
+            );
+
+            settings.compression = ReplicationCompression::Gzip;
+            client
+                .update_replication("test-replication-compression", settings)
+                .await
+                .unwrap();
+
+            let replication = client
+                .get_replication("test-replication-compression")
+                .await
+                .unwrap();
+            assert_eq!(
+                replication.settings.compression,
+                ReplicationCompression::Gzip
+            );
         }
     }
 
