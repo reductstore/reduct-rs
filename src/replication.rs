@@ -6,7 +6,9 @@
 use crate::client::Result;
 use crate::http_client::HttpClient;
 
-use reduct_base::msg::replication_api::{ReplicationMode, ReplicationSettings};
+use reduct_base::msg::replication_api::{
+    ReplicationCompression, ReplicationMode, ReplicationSettings,
+};
 use reqwest::Method;
 use std::sync::Arc;
 
@@ -104,6 +106,14 @@ impl ReplicationBuilder {
     /// * `mode` - Enabled, Paused, or Disabled.
     pub fn mode(mut self, mode: ReplicationMode) -> Self {
         self.settings.mode = mode;
+        self
+    }
+
+    /// Set replication transfer compression.
+    ///
+    /// * `compression` - None, Zstd, or Gzip.
+    pub fn compression(mut self, compression: ReplicationCompression) -> Self {
+        self.settings.compression = compression;
         self
     }
 

@@ -28,8 +28,8 @@ pub use reduct_base::msg::lifecycle_api::{
     LifecycleSettings, LifecycleType,
 };
 pub use reduct_base::msg::replication_api::{
-    FullReplicationInfo, ReplicationInfo, ReplicationList, ReplicationMode, ReplicationModePayload,
-    ReplicationSettings,
+    FullReplicationInfo, ReplicationCompression, ReplicationInfo, ReplicationList, ReplicationMode,
+    ReplicationModePayload, ReplicationSettings,
 };
 pub use reduct_base::msg::server_api::{BucketInfoList, Defaults, ServerInfo};
 pub use reduct_base::msg::status::ResourceStatus;
