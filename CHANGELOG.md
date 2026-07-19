@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add replication destination prefix support, [PR-94](https://github.com/reductstore/reduct-rs/pull/94)
 - Add replication compression setting support, [PR-96](https://github.com/reductstore/reduct-rs/pull/96)
 
+### Removed
+
+- Remove deprecated `include`, `exclude`, and `each_n` fields from `ReplicationSettings`, [PR-97](https://github.com/reductstore/reduct-rs/pull/97)
+
 ## 1.20.0 - 2026-06-17
 
 ### Added
