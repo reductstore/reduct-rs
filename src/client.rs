@@ -387,7 +387,7 @@ pub(crate) mod tests {
     use bytes::Bytes;
     use reduct_base::msg::bucket_api::{BucketSettings, QuotaType};
     use rstest::{fixture, rstest};
-    use tokio::time::sleep;
+    use tokio::time::{sleep, Duration};
 
     mod build {
         use super::*;
@@ -701,9 +701,6 @@ YyRIHN8wfdVoOw==
                 dst_token: std::env::var("RS_API_TOKEN").ok(),
                 entries: vec![],
                 dst_prefix: String::new(),
-                include: Labels::default(),
-                exclude: Labels::default(),
-                each_n: Some(1),
                 when: Some(condition!({"$eq": ["&label", 1]})),
                 mode: ReplicationMode::Enabled,
                 compression: ReplicationCompression::None,
@@ -820,8 +817,7 @@ YyRIHN8wfdVoOw==
             }
         }
 
-        // Wait for any non-blocking deletions to complete
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        wait_for_test_buckets_removed(&client).await;
 
         for replication in client.list_replications().await.unwrap() {
             if replication.name.starts_with("test-replication") {
@@ -837,7 +833,7 @@ YyRIHN8wfdVoOw==
             }
         }
 
-        sleep(std::time::Duration::from_millis(100)).await; // Wait for any non-blocking deletions to complete
+        wait_for_test_buckets_removed(&client).await;
 
         let bucket = client
             .create_bucket("test-bucket-1")
@@ -918,5 +914,20 @@ YyRIHN8wfdVoOw==
             .unwrap();
 
         client
+    }
+
+    async fn wait_for_test_buckets_removed(client: &ReductClient) {
+        for _ in 0..50 {
+            let buckets = client.bucket_list().await.unwrap().buckets;
+            if buckets.iter().all(|bucket| {
+                !bucket.name.starts_with("test-bucket") && bucket.name != "new-bucket"
+            }) {
+                return;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        panic!("Timed out waiting for test buckets to be removed");
     }
 }
