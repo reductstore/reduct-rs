@@ -67,7 +67,12 @@ jobs:
         run: RS_API_TOKEN=TOKEN cargo test --features ${{ matrix.features }} -- --test-threads=1
 
       - name: Show sccache stats
-        run: sccache --show-stats
+        run: |
+          if command -v sccache >/dev/null 2>&1; then
+            sccache --show-stats
+          else
+            echo "sccache is disabled for this build."
+          fi
 
   sdk_examples:
     name: Client SDK Examples
@@ -94,7 +99,12 @@ jobs:
         run: cargo run --example ${{matrix.example}}
 
       - name: Show sccache stats
-        run: sccache --show-stats
+        run: |
+          if command -v sccache >/dev/null 2>&1; then
+            sccache --show-stats
+          else
+            echo "sccache is disabled for this build."
+          fi
 
   dry_publish:
     runs-on: ubuntu-latest
@@ -119,7 +129,12 @@ jobs:
         run: cargo publish --dry-run -p reduct-rs
 
       - name: Show sccache stats
-        run: sccache --show-stats
+        run: |
+          if command -v sccache >/dev/null 2>&1; then
+            sccache --show-stats
+          else
+            echo "sccache is disabled for this build."
+          fi
 
   check_tag:
     runs-on: ubuntu-latest
