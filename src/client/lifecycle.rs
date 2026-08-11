@@ -74,6 +74,16 @@ impl LifecycleBuilder {
         self
     }
 
+    /// Set the maximum data-time range processed by one lifecycle run.
+    ///
+    /// # Arguments
+    ///
+    /// * `processing_interval` - Processing interval, e.g. "6h", "12h", or "1d".
+    pub fn processing_interval(mut self, processing_interval: &str) -> Self {
+        self.settings.processing_interval = Some(processing_interval.to_string());
+        self
+    }
+
     /// Set the lifecycle conditional query.
     ///
     /// # Arguments
@@ -178,6 +188,7 @@ impl ReductClient {
     ///         .entries(vec!["entry-*".to_string()])
     ///         .older_than("1h")
     ///         .interval("10m")
+    ///         .processing_interval("12h")
     ///         .when(condition!({"$eq": ["&label", 1]}))
     ///         .mode(LifecycleMode::DryRun)
     ///         .send()
@@ -328,6 +339,44 @@ mod tests {
         assert_eq!(lifecycle.settings, settings);
     }
 
+    #[cfg(feature = "test-api-121")]
+    #[rstest]
+    #[tokio::test]
+    async fn test_lifecycle_processing_interval(
+        #[future] client: ReductClient,
+        mut settings: LifecycleSettings,
+    ) {
+        let client = client.await;
+        client
+            .create_lifecycle("test-lifecycle")
+            .lifecycle_type(settings.lifecycle_type)
+            .bucket(settings.bucket.as_str())
+            .entries(settings.entries.clone())
+            .older_than(settings.older_than.as_str())
+            .interval(settings.interval.as_str())
+            .processing_interval("12h")
+            .when(settings.when.clone().unwrap())
+            .mode(settings.mode)
+            .send()
+            .await
+            .unwrap();
+
+        let lifecycle = client.get_lifecycle("test-lifecycle").await.unwrap();
+        assert_eq!(
+            lifecycle.settings.processing_interval,
+            Some("12h".to_string())
+        );
+
+        settings.processing_interval = Some("6h".to_string());
+        client
+            .update_lifecycle("test-lifecycle", settings.clone())
+            .await
+            .unwrap();
+
+        let lifecycle = client.get_lifecycle("test-lifecycle").await.unwrap();
+        assert_eq!(lifecycle.settings, settings);
+    }
+
     #[rstest]
     #[tokio::test]
     async fn test_set_lifecycle_mode(#[future] client: ReductClient, settings: LifecycleSettings) {
@@ -398,6 +447,7 @@ mod tests {
             entries: vec![],
             older_than: "1h".to_string(),
             interval: "10m".to_string(),
+            processing_interval: None,
             when: Some(condition!({"$eq": ["&label", 1]})),
             mode: LifecycleMode::Enabled,
         }

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add replication destination prefix support, [PR-94](https://github.com/reductstore/reduct-rs/pull/94)
 - Add replication compression setting support, [PR-96](https://github.com/reductstore/reduct-rs/pull/96)
+- Add lifecycle `processing_interval` setting support, [PR-102](https://github.com/reductstore/reduct-rs/pull/102)
 
 ### Removed
 
