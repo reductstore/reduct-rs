@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add replication compression setting support, [PR-96](https://github.com/reductstore/reduct-rs/pull/96)
 - Add lifecycle `processing_interval` setting support, [PR-102](https://github.com/reductstore/reduct-rs/pull/102)
 - Enable HTTP/2 support for HTTPS connections, [PR-103](https://github.com/reductstore/reduct-rs/pull/103)
+- Add configurable HTTP/2 response header-list limit, [PR-104](https://github.com/reductstore/reduct-rs/pull/104)
 
 ### Removed
 
