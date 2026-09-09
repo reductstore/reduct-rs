@@ -27,6 +27,8 @@ pub struct ReductClientBuilder {
     api_token: String,
     timeout: Duration,
     http1_only: bool,
+    http1_max_headers: usize,
+    http2_max_header_list_size: u32,
     verify_ssl: bool,
     ca_cert_path: Option<String>,
 }
@@ -34,6 +36,8 @@ pub struct ReductClientBuilder {
 pub type Result<T> = std::result::Result<T, ReductError>;
 
 pub(super) static API_BASE: &str = "api/v1";
+const DEFAULT_HTTP1_MAX_HEADERS: usize = 1_024;
+const DEFAULT_HTTP2_MAX_HEADER_LIST_SIZE: u32 = 512_000;
 
 impl ReductClientBuilder {
     fn new() -> Self {
@@ -42,6 +46,8 @@ impl ReductClientBuilder {
             api_token: String::new(),
             timeout: Duration::from_secs(30),
             http1_only: false,
+            http1_max_headers: DEFAULT_HTTP1_MAX_HEADERS,
+            http2_max_header_list_size: DEFAULT_HTTP2_MAX_HEADER_LIST_SIZE,
             verify_ssl: true,
             ca_cert_path: None,
         }
@@ -68,6 +74,8 @@ impl ReductClientBuilder {
         let builder = reqwest::ClientBuilder::new()
             .timeout(self.timeout)
             .cookie_store(true)
+            .http1_max_headers(self.http1_max_headers)
+            .http2_max_header_list_size(self.http2_max_header_list_size)
             .danger_accept_invalid_certs(!self.verify_ssl);
         let builder = if let Some(ca_cert_path) = self.ca_cert_path {
             let certs = std::fs::read(&ca_cert_path)
@@ -143,6 +151,23 @@ impl ReductClientBuilder {
     /// Set the HTTP version to HTTP/1.1 only.
     pub fn http1_only(mut self) -> Self {
         self.http1_only = true;
+        self
+    }
+
+    /// Set the maximum number of headers accepted in an HTTP/1 response.
+    ///
+    /// The default is 1,024 headers to support large ReductStore record batches.
+    pub fn http1_max_headers(mut self, max: usize) -> Self {
+        self.http1_max_headers = max;
+        self
+    }
+
+    /// Set the maximum size, in bytes, of HTTP/2 response header lists.
+    ///
+    /// The default is 512,000 bytes to match ReductStore's default maximum
+    /// batch metadata size.
+    pub fn http2_max_header_list_size(mut self, size: u32) -> Self {
+        self.http2_max_header_list_size = size;
         self
     }
 
@@ -422,6 +447,27 @@ pub(crate) mod tests {
         fn test_build_client(#[case] url: &str, #[case] expected_url: &str) {
             let client = ReductClient::builder().url(url).build();
             assert_eq!(client.url(), expected_url);
+        }
+
+        #[test]
+        fn test_http2_max_header_list_size() {
+            let builder = ReductClient::builder();
+            assert_eq!(
+                builder.http2_max_header_list_size,
+                DEFAULT_HTTP2_MAX_HEADER_LIST_SIZE
+            );
+
+            let builder = builder.http2_max_header_list_size(1_000_000);
+            assert_eq!(builder.http2_max_header_list_size, 1_000_000);
+        }
+
+        #[test]
+        fn test_http1_max_headers() {
+            let builder = ReductClient::builder();
+            assert_eq!(builder.http1_max_headers, DEFAULT_HTTP1_MAX_HEADERS);
+
+            let builder = builder.http1_max_headers(2_048);
+            assert_eq!(builder.http1_max_headers, 2_048);
         }
 
         #[rstest]
