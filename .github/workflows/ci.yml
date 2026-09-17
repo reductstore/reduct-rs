@@ -85,7 +85,19 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Run Database
-        run: docker run --network=host -v ${PWD}/misc:/misc -d ${{env.REGISTRY_IMAGE}} --env RS_DISABLE_AUTH=true
+        run: |
+          container_id=$(docker run --network=host -v "${PWD}/misc:/misc" -d \
+            --env RS_DISABLE_AUTH=true \
+            ${{ env.REGISTRY_IMAGE }})
+          for _ in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8383/api/v1/info >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker ps --all
+          docker logs "$container_id"
+          exit 1
 
       - name: AWS Credentials and Cargo Cache
         uses: ./.github/actions/aws-cargo-cache
