@@ -85,7 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Run Database
-        run: docker run --network=host -v ${PWD}/misc:/misc -d ${{env.REGISTRY_IMAGE}}
+        run: docker run --network=host -v ${PWD}/misc:/misc -d ${{env.REGISTRY_IMAGE}} --env RS_DISABLE_AUTH=true
 
       - name: AWS Credentials and Cargo Cache
         uses: ./.github/actions/aws-cargo-cache
