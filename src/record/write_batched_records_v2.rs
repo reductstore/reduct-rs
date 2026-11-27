@@ -21,6 +21,7 @@ pub struct WriteRecordBatchBuilder {
     bucket: String,
     batch_type: WriteBatchType,
     records: VecDeque<Record>,
+    sync: bool,
     client: Arc<HttpClient>,
     last_access: SystemTime,
 }
@@ -33,6 +34,7 @@ impl WriteRecordBatchBuilder {
             bucket,
             batch_type,
             records: VecDeque::new(),
+            sync: false,
             client,
             last_access: SystemTime::now(),
         }
@@ -50,6 +52,14 @@ impl WriteRecordBatchBuilder {
     pub fn add_record(mut self, record: Record) -> Self {
         self.records.push_back(record);
         self.last_access = SystemTime::now();
+        self
+    }
+
+    /// Set whether the write must be synchronized with durable storage.
+    ///
+    /// This setting only applies to write batches.
+    pub fn sync(mut self, sync: bool) -> Self {
+        self.sync = sync;
         self
     }
 
@@ -198,6 +208,10 @@ impl WriteRecordBatchBuilder {
                 HeaderValue::from_str(&encode_entries(&entries)).unwrap(),
             );
 
+        if should_sync_write(self.sync, &self.batch_type) {
+            request = request.header("x-reduct-sync-write", "true");
+        }
+
         for record in &records {
             let idx = *entry_index.get(record.entry()).unwrap();
             let delta = record.timestamp_us() - start_ts;
@@ -341,4 +355,66 @@ fn parse_error_key(key: &str) -> Option<(usize, u64)> {
     let suffix = key.strip_prefix("x-reduct-error-")?;
     let (entry_idx, delta) = suffix.rsplit_once('-')?;
     Some((entry_idx.parse().ok()?, delta.parse().ok()?))
+}
+
+fn should_sync_write(sync: bool, batch_type: &WriteBatchType) -> bool {
+    sync && matches!(batch_type, WriteBatchType::Write)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::http_client::request_capture_server;
+    use crate::RecordBuilder;
+    use bytes::Bytes;
+    use std::time::Duration;
+
+    async fn capture_request(batch_type: WriteBatchType, sync: Option<bool>) -> String {
+        let (url, receiver, server) = request_capture_server();
+        let client = Arc::new(HttpClient::new(&url, "token", reqwest::Client::new()).unwrap());
+        let batch = WriteRecordBatchBuilder::new("bucket".into(), client, batch_type);
+        let batch = match sync {
+            Some(sync) => batch.sync(sync),
+            None => batch,
+        };
+
+        batch
+            .add_record(
+                RecordBuilder::new()
+                    .entry("entry")
+                    .timestamp_us(1)
+                    .data(Bytes::from("data"))
+                    .build(),
+            )
+            .send()
+            .await
+            .unwrap();
+
+        let request = receiver.recv_timeout(Duration::from_secs(1)).unwrap();
+        server.join().unwrap();
+        request
+    }
+
+    #[tokio::test]
+    async fn sync_write_header_is_opt_in() {
+        assert!(capture_request(WriteBatchType::Write, Some(true))
+            .await
+            .contains("x-reduct-sync-write: true\r\n"));
+        assert!(!capture_request(WriteBatchType::Write, None)
+            .await
+            .contains("x-reduct-sync-write:"));
+        assert!(!capture_request(WriteBatchType::Write, Some(false))
+            .await
+            .contains("x-reduct-sync-write:"));
+    }
+
+    #[tokio::test]
+    async fn sync_write_header_is_not_sent_for_update_or_remove() {
+        assert!(!capture_request(WriteBatchType::Update, Some(true))
+            .await
+            .contains("x-reduct-sync-write:"));
+        assert!(!capture_request(WriteBatchType::Remove, Some(true))
+            .await
+            .contains("x-reduct-sync-write:"));
+    }
 }

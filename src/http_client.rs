@@ -194,3 +194,44 @@ pub(crate) fn map_error(error: reqwest::Error) -> ReductError {
 
     ReductError::new(status, &error.to_string())
 }
+
+#[cfg(test)]
+pub(crate) fn request_capture_server() -> (
+    String,
+    std::sync::mpsc::Receiver<String>,
+    std::thread::JoinHandle<()>,
+) {
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let (sender, receiver) = mpsc::channel();
+    let handle = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+
+        let mut request = Vec::new();
+        let mut buffer = [0; 1024];
+        loop {
+            let bytes_read = stream.read(&mut buffer).unwrap();
+            request.extend_from_slice(&buffer[..bytes_read]);
+            if request.windows(4).any(|window| window == b"\r\n\r\n") {
+                break;
+            }
+        }
+
+        sender
+            .send(String::from_utf8_lossy(&request).into_owned())
+            .unwrap();
+        stream
+            .write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nx-reduct-api: 1.21\r\nconnection: close\r\n\r\n")
+            .unwrap();
+    });
+
+    (format!("http://{address}/api/v1/"), receiver, handle)
+}
