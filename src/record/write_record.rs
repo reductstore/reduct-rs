@@ -25,6 +25,7 @@ pub struct WriteRecordBuilder {
     content_type: String,
     content_length: Option<u64>,
     data: Option<Body>,
+    sync: bool,
     client: Arc<HttpClient>,
 }
 
@@ -36,6 +37,7 @@ impl WriteRecordBuilder {
             content_type: "application/octet-stream".to_string(),
             content_length: None,
             data: None,
+            sync: false,
             bucket,
             entry,
             client,
@@ -86,6 +88,12 @@ impl WriteRecordBuilder {
         self
     }
 
+    /// Set whether the write must be synchronized with durable storage.
+    pub fn sync(mut self, sync: bool) -> Self {
+        self.sync = sync;
+        self
+    }
+
     /// Set the data of the record to write.
     ///
     /// # Arguments
@@ -131,6 +139,10 @@ impl WriteRecordBuilder {
             request = request.header(CONTENT_LENGTH, content_length);
         }
 
+        if self.sync {
+            request = request.header("x-reduct-sync-write", "true");
+        }
+
         if let Some(data) = self.data {
             request = request.body(data);
             self.client.send_request(request).await?;
@@ -138,5 +150,45 @@ impl WriteRecordBuilder {
         } else {
             Err(ReductError::new(ErrorCode::BadRequest, "No data provided"))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::http_client::request_capture_server;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn sync_write_header_is_opt_in() {
+        let (url, receiver, server) = request_capture_server();
+        let client = Arc::new(HttpClient::new(&url, "token", reqwest::Client::new()).unwrap());
+
+        WriteRecordBuilder::new("bucket".into(), "entry".into(), client)
+            .sync(true)
+            .data("data")
+            .send()
+            .await
+            .unwrap();
+
+        let request = receiver.recv_timeout(Duration::from_secs(1)).unwrap();
+        server.join().unwrap();
+        assert!(request.contains("x-reduct-sync-write: true\r\n"));
+    }
+
+    #[tokio::test]
+    async fn sync_write_header_is_omitted_by_default() {
+        let (url, receiver, server) = request_capture_server();
+        let client = Arc::new(HttpClient::new(&url, "token", reqwest::Client::new()).unwrap());
+
+        WriteRecordBuilder::new("bucket".into(), "entry".into(), client)
+            .data("data")
+            .send()
+            .await
+            .unwrap();
+
+        let request = receiver.recv_timeout(Duration::from_secs(1)).unwrap();
+        server.join().unwrap();
+        assert!(!request.contains("x-reduct-sync-write:"));
     }
 }
