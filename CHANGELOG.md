@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add opt-in synchronous durability for single-record and batch writes
+- Add opt-in synchronous durability for single-record and batch writes, [PR-110](https://github.com/reductstore/reduct-rs/pull/110)
 
 ## 1.21.0 - 2026-09-17
 
